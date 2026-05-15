@@ -1,0 +1,79 @@
+/* 80mm thermal print stylesheet — used by /print/* pages */
+
+@media print {
+  @page {
+    size: 80mm auto;
+    margin: 0;
+  }
+
+  html, body {
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #fff !important;
+  }
+
+  body {
+    font-family: 'Courier New', ui-monospace, monospace !important;
+    font-size: 11pt;
+    line-height: 1.3;
+    color: #000;
+  }
+
+  .no-print { display: none !important; }
+
+  .print-receipt {
+    width: 70mm;
+    margin: 0 auto;
+    padding: 3mm 0;
+    color: #000;
+  }
+
+  .print-receipt[data-size='58mm'] {
+    width: 48mm;
+  }
+}
+
+/* 58mm page size override is emitted inline by the receipt page when needed. */
+
+@media screen {
+  .print-receipt {
+    width: 80mm;
+    min-height: 100mm;
+    margin: 32px auto;
+    background: #fff;
+    padding: 8mm 5mm;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    border-radius: 4px;
+    font-family: 'Courier New', ui-monospace, monospace;
+    font-size: 11pt;
+    line-height: 1.35;
+    color: #000;
+  }
+  .print-receipt[data-size='58mm'] {
+    width: 58mm;
+    font-size: 10pt;
+  }
+}
+
+.print-receipt .center { text-align: center; }
+.print-receipt .right { text-align: right; }
+.print-receipt .left { text-align: left; }
+.print-receipt .bold { font-weight: 700; }
+.print-receipt .lg { font-size: 13pt; }
+.print-receipt .xl { font-size: 15pt; font-weight: 700; }
+.print-receipt .muted { color: #555; }
+
+.print-receipt .divider {
+  border: 0;
+  border-top: 1px dashed #000;
+  margin: 2mm 0;
+}
+.print-receipt .row {
+  display: flex;
+  justify-content: space-between;
+  gap: 4mm;
+}
+.print-receipt table { width: 100%; border-collapse: collapse; }
+.print-receipt td { padding: 0.5mm 0; vertical-align: top; }
+.print-receipt .item-row { display: flex; justify-content: space-between; gap: 4mm; }
+.print-receipt .small { font-size: 10pt; }

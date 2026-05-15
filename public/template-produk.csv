@@ -1,0 +1,7 @@
+nama,variant,kategori,harga_jual,harga_modal,sku,barcode,satuan,stok,aktif
+Cat Tembok,Putih 5kg,Cat,85000,60000,CAT-PT-05,8991234567,Kaleng,20,ya
+Cat Tembok,Putih 25kg,Cat,380000,270000,CAT-PT-25,8991234568,Kaleng,5,ya
+Cat Tembok,Merah 5kg,Cat,90000,65000,CAT-MR-05,8991234569,Kaleng,15,ya
+Pipa PVC,1/2 inch,Pipa,15000,9000,PIPA-05,,Batang,100,ya
+Pipa PVC,3/4 inch,Pipa,22000,13500,PIPA-07,,Batang,80,ya
+Semen Tiga Roda,,Semen,75000,55000,SMN-TR-50,8993456789,Zak,50,ya

@@ -1,0 +1,10 @@
+node_modules
+.next
+.git
+.env*
+!.env.local.example
+*.md
+coverage
+.vscode
+.DS_Store
+docker-compose.yml
