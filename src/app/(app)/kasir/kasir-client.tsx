@@ -942,7 +942,10 @@ export function KasirClient({
                           >
                             <Minus className="size-3.5" />
                           </button>
-                          <div className="w-8 text-center font-semibold text-sm">{it.quantity}</div>
+                          <CartQtyInput
+                            value={it.quantity}
+                            onChange={(n) => updateCartItem(it.uid, { quantity: n })}
+                          />
                           <button
                             onClick={() => incItem(it.uid)}
                             className="p-1.5 hover:bg-muted rounded-r-lg"
@@ -1709,6 +1712,37 @@ export function KasirClient({
         </DialogContent>
       </Dialog>
     </div>
+  )
+}
+
+function CartQtyInput({ value, onChange }: { value: number; onChange: (v: number) => void }) {
+  const [text, setText] = useState(String(value))
+  useEffect(() => {
+    setText(String(value))
+  }, [value])
+  return (
+    <input
+      type="text"
+      inputMode="numeric"
+      pattern="[0-9]*"
+      value={text}
+      onChange={(e) => {
+        const raw = e.target.value.replace(/[^0-9]/g, '')
+        setText(raw)
+        const n = parseInt(raw, 10)
+        if (!isNaN(n) && n > 0) onChange(n)
+      }}
+      onBlur={() => {
+        const n = parseInt(text, 10)
+        if (isNaN(n) || n < 1) {
+          setText(String(value))
+        }
+      }}
+      onFocus={(e) => e.target.select()}
+      onClick={(e) => e.stopPropagation()}
+      aria-label="Qty"
+      className="w-10 text-center font-semibold text-sm bg-transparent outline-none focus:bg-muted/40 rounded"
+    />
   )
 }
 

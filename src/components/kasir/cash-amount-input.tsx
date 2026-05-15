@@ -11,10 +11,19 @@ const idFmt = new Intl.NumberFormat('id-ID')
 export function generateQuickAmounts(total: number): number[] {
   if (total <= 0) return [0]
   const result = new Set<number>([total])
-  const candidates = [50_000, 100_000, 150_000, 200_000, 300_000, 500_000, 1_000_000]
-  for (const c of candidates) if (c >= total) result.add(c)
-  const roundUp10k = Math.ceil(total / 10_000) * 10_000
-  if (roundUp10k > total) result.add(roundUp10k)
+  if (total <= 1_000_000) {
+    const candidates = [50_000, 100_000, 150_000, 200_000, 300_000, 500_000, 1_000_000]
+    for (const c of candidates) if (c >= total) result.add(c)
+    const roundUp10k = Math.ceil(total / 10_000) * 10_000
+    if (roundUp10k > total) result.add(roundUp10k)
+  } else {
+    const next50k = Math.ceil(total / 50_000) * 50_000
+    const next500k = Math.ceil(total / 500_000) * 500_000
+    const next1jt = Math.ceil(total / 1_000_000) * 1_000_000
+    if (next50k > total) result.add(next50k)
+    if (next500k > total) result.add(next500k)
+    if (next1jt > total) result.add(next1jt)
+  }
   return Array.from(result)
     .sort((a, b) => a - b)
     .slice(0, 6)
