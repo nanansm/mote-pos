@@ -9,8 +9,13 @@ FROM node:20-alpine AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
+
+# Build-time env (NEXT_PUBLIC_* ter-inline ke bundle JS saat build)
+ENV NEXT_PUBLIC_APP_URL=https://pos.motekreatif.com
+ENV BETTER_AUTH_URL=https://pos.motekreatif.com
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_OPTIONS=--max-old-space-size=4096
+
 RUN npm run build
 
 # Stage 3: runner
