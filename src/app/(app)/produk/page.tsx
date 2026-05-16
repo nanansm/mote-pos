@@ -51,6 +51,8 @@ const DEFAULT_UNITS = [
 
 type Product = {
   id: string
+  groupId?: string | null
+  variantName?: string | null
   name: string
   sku: string | null
   barcode: string | null
@@ -63,6 +65,28 @@ type Product = {
   categoryId: string | null
   categoryName: string | null
   modifierGroupIds: string[]
+}
+
+type VariantRow = {
+  variantName: string
+  priceSell: number
+  priceCost: number
+  sku: string
+  barcode: string
+  unit: string
+  stockTrack: boolean
+  stockCurrent: number
+}
+
+const emptyVariant: VariantRow = {
+  variantName: '',
+  priceSell: 0,
+  priceCost: 0,
+  sku: '',
+  barcode: '',
+  unit: 'pcs',
+  stockTrack: false,
+  stockCurrent: 0,
 }
 type Category = { id: string; name: string }
 type ModifierGroup = { id: string; name: string }
@@ -95,6 +119,13 @@ export default function ProductsPage() {
   const [saving, setSaving] = useState(false)
   const [search, setSearch] = useState('')
   const [filterCat, setFilterCat] = useState<string>('all')
+
+  // STEP 9 — variant toggle + rows
+  const [hasVariants, setHasVariants] = useState(false)
+  const [variantRows, setVariantRows] = useState<VariantRow[]>([
+    { ...emptyVariant },
+    { ...emptyVariant },
+  ])
 
   // CSV import
   const [csvOpen, setCsvOpen] = useState(false)
@@ -131,9 +162,28 @@ export default function ProductsPage() {
     })
   }, [list, filterCat, search])
 
+  const groupSummary = useMemo(() => {
+    const map = new Map<string, { count: number; min: number; max: number }>()
+    for (const p of list) {
+      const key = p.groupId ?? p.id
+      const price = Number(p.priceSell)
+      const cur = map.get(key)
+      if (!cur) {
+        map.set(key, { count: 1, min: price, max: price })
+      } else {
+        cur.count += 1
+        cur.min = Math.min(cur.min, price)
+        cur.max = Math.max(cur.max, price)
+      }
+    }
+    return map
+  }, [list])
+
   const openCreate = () => {
     setEditing(null)
     setForm({ ...emptyForm })
+    setHasVariants(false)
+    setVariantRows([{ ...emptyVariant }, { ...emptyVariant }])
     setOpen(true)
   }
   const openEdit = (p: Product) => {
@@ -151,13 +201,56 @@ export default function ProductsPage() {
       isActive: p.isActive,
       modifierGroupIds: p.modifierGroupIds,
     })
+    setHasVariants(false)
     setOpen(true)
   }
 
   const submit = async () => {
     if (!form.name.trim()) return toast.error('Nama produk wajib diisi')
-    if (form.priceSell < 0) return toast.error('Harga jual tidak valid')
     setSaving(true)
+
+    if (!editing && hasVariants) {
+      const rows = variantRows.filter((v) => v.variantName.trim() || v.priceSell > 0)
+      if (rows.length < 2) {
+        setSaving(false)
+        return toast.error('Minimal 2 variant atau matikan toggle Variant')
+      }
+      const payload = {
+        name: form.name.trim(),
+        categoryId: form.categoryId || null,
+        variants: rows.map((v) => ({
+          variantName: v.variantName.trim() || null,
+          sku: v.sku.trim() || null,
+          barcode: v.barcode.trim() || null,
+          priceSell: Number(v.priceSell) || 0,
+          priceCost: v.priceCost > 0 ? Number(v.priceCost) : null,
+          unit: v.unit || 'pcs',
+          stockTrack: v.stockTrack,
+          stockCurrent: v.stockTrack ? Number(v.stockCurrent) || 0 : 0,
+          isActive: true,
+        })),
+      }
+      const res = await fetch('/api/product-groups', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify(payload),
+      })
+      setSaving(false)
+      if (!res.ok) {
+        const j = await res.json().catch(() => ({}))
+        toast.error(j.error ?? 'Gagal menyimpan')
+        return
+      }
+      toast.success(`Produk + ${rows.length} variant dibuat`)
+      setOpen(false)
+      load()
+      return
+    }
+
+    if (form.priceSell < 0) {
+      setSaving(false)
+      return toast.error('Harga jual tidak valid')
+    }
     const payload = {
       name: form.name,
       categoryId: form.categoryId || null,
@@ -349,14 +442,34 @@ export default function ProductsPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
-                  {filtered.map((p) => (
-                    <tr key={p.id} className="hover:bg-muted/30">
-                      <td className="px-5 py-3 font-semibold">{p.name}</td>
+                  {filtered.map((p) => {
+                    const key = p.groupId ?? p.id
+                    const sum = groupSummary.get(key)
+                    const isMulti = (sum?.count ?? 1) > 1
+                    return (
+                    <tr key={p.id} className="hover:bg-muted/30 transition-colors">
+                      <td className="px-5 py-3 font-semibold">
+                        <div className="flex items-center gap-2">
+                          <span>
+                            {p.name}
+                            {p.variantName && (
+                              <span className="text-muted-foreground"> · {p.variantName}</span>
+                            )}
+                          </span>
+                          {isMulti && (
+                            <span className="text-[10px] uppercase tracking-wider rounded bg-brand-500/10 text-brand-700 px-1.5 py-0.5 font-semibold">
+                              {sum!.count} variant
+                            </span>
+                          )}
+                        </div>
+                      </td>
                       <td className="px-5 py-3 text-muted-foreground">
                         {p.categoryName ?? '—'}
                       </td>
                       <td className="px-5 py-3 text-right tabular-nums">
-                        {formatRupiah(Number(p.priceSell))}
+                        {isMulti && sum!.min !== sum!.max
+                          ? `${formatRupiah(sum!.min)} – ${formatRupiah(sum!.max)}`
+                          : formatRupiah(Number(p.priceSell))}
                       </td>
                       <td className="px-5 py-3 text-right tabular-nums text-muted-foreground">
                         {p.stockTrack ? p.stockCurrent : '—'}
@@ -373,15 +486,16 @@ export default function ProductsPage() {
                         </span>
                       </td>
                       <td className="px-5 py-3 text-right">
-                        <Button variant="ghost" size="sm" onClick={() => openEdit(p)} aria-label="Edit">
+                        <Button variant="ghost" size="sm" onClick={() => openEdit(p)} aria-label="Edit" className="hover:bg-brand-500/10 hover:text-brand-700">
                           <Pencil className="size-4" />
                         </Button>
-                        <Button variant="ghost" size="sm" onClick={() => remove(p)} aria-label="Hapus">
+                        <Button variant="ghost" size="sm" onClick={() => remove(p)} aria-label="Hapus" className="hover:bg-destructive/10">
                           <Trash2 className="size-4 text-destructive" />
                         </Button>
                       </td>
                     </tr>
-                  ))}
+                    )
+                  })}
                 </tbody>
               </table>
             </div>
@@ -426,7 +540,7 @@ export default function ProductsPage() {
                 id="p-name"
                 value={form.name}
                 onChange={(e) => setForm({ ...form, name: e.target.value })}
-                placeholder="cth. Kopi Susu"
+                placeholder="cth. Semen Tiga Roda"
               />
             </div>
             <div className="space-y-1.5">
@@ -450,6 +564,180 @@ export default function ProductsPage() {
                 </SelectContent>
               </Select>
             </div>
+            {!editing && (
+              <div className="rounded-lg border border-border p-3 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label className="text-sm">Punya banyak variant?</Label>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      cth. ukuran 50kg / 40kg, atau warna merah/biru
+                    </p>
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setHasVariants(false)}
+                      className={`px-3 h-8 rounded-md text-xs font-semibold transition-colors ${
+                        !hasVariants ? 'bg-foreground text-background' : 'bg-muted text-muted-foreground hover:bg-muted/70'
+                      }`}
+                    >
+                      Tidak
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setHasVariants(true)}
+                      className={`px-3 h-8 rounded-md text-xs font-semibold transition-colors ${
+                        hasVariants ? 'bg-foreground text-background' : 'bg-muted text-muted-foreground hover:bg-muted/70'
+                      }`}
+                    >
+                      Ya
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+            {!editing && hasVariants && (
+              <div className="space-y-2">
+                <div className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                  Variant
+                </div>
+                {variantRows.map((v, i) => (
+                  <div key={i} className="rounded-lg border border-border p-3 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div className="text-sm font-semibold">Variant {i + 1}</div>
+                      {variantRows.length > 2 && (
+                        <button
+                          type="button"
+                          onClick={() => setVariantRows(variantRows.filter((_, j) => j !== i))}
+                          className="text-xs text-destructive hover:underline"
+                        >
+                          Hapus
+                        </button>
+                      )}
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="col-span-2">
+                        <Label className="text-xs">Nama Variant</Label>
+                        <Input
+                          value={v.variantName}
+                          onChange={(e) =>
+                            setVariantRows(
+                              variantRows.map((x, j) =>
+                                j === i ? { ...x, variantName: e.target.value } : x,
+                              ),
+                            )
+                          }
+                          placeholder="cth. 50kg"
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-xs">Harga Jual</Label>
+                        <CurrencyInput
+                          value={v.priceSell}
+                          onValueChange={(n) =>
+                            setVariantRows(
+                              variantRows.map((x, j) => (j === i ? { ...x, priceSell: n } : x)),
+                            )
+                          }
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-xs">Harga Modal</Label>
+                        <CurrencyInput
+                          value={v.priceCost}
+                          onValueChange={(n) =>
+                            setVariantRows(
+                              variantRows.map((x, j) => (j === i ? { ...x, priceCost: n } : x)),
+                            )
+                          }
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-xs">SKU</Label>
+                        <Input
+                          value={v.sku}
+                          onChange={(e) =>
+                            setVariantRows(
+                              variantRows.map((x, j) =>
+                                j === i ? { ...x, sku: e.target.value } : x,
+                              ),
+                            )
+                          }
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-xs">Barcode</Label>
+                        <Input
+                          value={v.barcode}
+                          onChange={(e) =>
+                            setVariantRows(
+                              variantRows.map((x, j) =>
+                                j === i ? { ...x, barcode: e.target.value } : x,
+                              ),
+                            )
+                          }
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-xs">Satuan</Label>
+                        <Input
+                          value={v.unit}
+                          onChange={(e) =>
+                            setVariantRows(
+                              variantRows.map((x, j) =>
+                                j === i ? { ...x, unit: e.target.value } : x,
+                              ),
+                            )
+                          }
+                          placeholder="pcs"
+                        />
+                      </div>
+                      <div className="flex items-center gap-2 mt-5">
+                        <Checkbox
+                          checked={v.stockTrack}
+                          onCheckedChange={(c) =>
+                            setVariantRows(
+                              variantRows.map((x, j) =>
+                                j === i ? { ...x, stockTrack: c === true } : x,
+                              ),
+                            )
+                          }
+                        />
+                        <Label className="text-xs">Lacak Stok</Label>
+                      </div>
+                      {v.stockTrack && (
+                        <div className="col-span-2">
+                          <Label className="text-xs">Stok awal</Label>
+                          <Input
+                            type="number"
+                            min={0}
+                            value={v.stockCurrent}
+                            onChange={(e) =>
+                              setVariantRows(
+                                variantRows.map((x, j) =>
+                                  j === i
+                                    ? { ...x, stockCurrent: Number(e.target.value) || 0 }
+                                    : x,
+                                ),
+                              )
+                            }
+                          />
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+                <button
+                  type="button"
+                  onClick={() => setVariantRows([...variantRows, { ...emptyVariant }])}
+                  className="w-full rounded-lg border border-dashed border-border p-3 text-sm font-semibold text-muted-foreground hover:bg-brand-500/10 hover:border-brand-500/30 hover:text-foreground transition-colors"
+                >
+                  + Tambah Variant Lain
+                </button>
+              </div>
+            )}
+            {!hasVariants && (
+            <>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label htmlFor="p-price">Harga jual</Label>
@@ -528,7 +816,9 @@ export default function ProductsPage() {
                 />
               </div>
             )}
-            {groups.length > 0 && (
+            </>
+            )}
+            {!hasVariants && groups.length > 0 && (
               <div className="space-y-1.5">
                 <Label>Modifier Group</Label>
                 <div className="mt-1 space-y-2 max-h-40 overflow-y-auto rounded-lg border border-border p-3">

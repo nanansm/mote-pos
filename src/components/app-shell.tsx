@@ -21,6 +21,8 @@ import {
   ReceiptText,
   ChevronRight,
   ScrollText,
+  Wallet,
+  Package2,
 } from 'lucide-react'
 import { signOut } from '@/lib/auth-client'
 import { useKeepAlive } from '@/hooks/use-keep-alive'
@@ -43,6 +45,8 @@ const NAV: NavItem[] = [
   { href: '/modifier', label: 'Modifier', Icon: SlidersHorizontal },
   { href: '/pelanggan', label: 'Pelanggan', Icon: Users },
   { href: '/hutang', label: 'Hutang', Icon: ScrollText },
+  { href: '/titipan-uang', label: 'Titipan Uang', Icon: Wallet },
+  { href: '/titipan-barang', label: 'Titipan Barang', Icon: Package2 },
   { href: '/kasir-list', label: 'Kasir & Shift', Icon: UserCog },
   { href: '/laporan/penjualan', label: 'Laporan', Icon: BarChart3 },
   { href: '/pengaturan', label: 'Pengaturan', Icon: Settings },
@@ -154,14 +158,14 @@ export function AppShell({
                   className={`relative flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
                     active
                       ? 'bg-primary/10 text-foreground'
-                      : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                      : 'text-muted-foreground hover:bg-muted/70 hover:text-foreground'
                   }`}
                 >
                   {active && (
                     <span className="absolute left-0 top-1.5 bottom-1.5 w-0.5 rounded-r bg-primary" />
                   )}
                   <item.Icon
-                    className={`size-4 ${active ? 'text-primary' : ''}`}
+                    className={`size-4 transition-colors ${active ? 'text-primary' : 'group-hover:text-foreground'}`}
                   />
                   {item.label}
                 </Link>
@@ -176,7 +180,7 @@ export function AppShell({
             </div>
             <button
               onClick={handleLogout}
-              className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+              className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors"
             >
               <LogOut className="size-4" />
               Logout

@@ -22,6 +22,7 @@ import {
 import { getCurrentContext } from '@/lib/session'
 import { Button } from '@/components/ui/button'
 import { formatRupiah } from '@/lib/format'
+import { getPaymentMethodLabel } from '@/lib/payment-methods/labels'
 
 export const dynamic = 'force-dynamic'
 
@@ -168,10 +169,10 @@ export default async function DashboardPage() {
             {formatTanggalIndonesia(today)}
           </p>
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight mt-1">
-            Halo, {ctx.user.name.split(' ')[0]} 👋
+            Dashboard
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Ringkasan {ctx.workspace.name} hari ini.
+            Ringkasan toko kamu hari ini.
           </p>
         </div>
         <Link href={openShifts > 0 ? '/kasir' : '/kasir/buka-shift'}>
@@ -186,7 +187,7 @@ export default async function DashboardPage() {
         {stats.map((s) => (
           <div
             key={s.label}
-            className="rounded-2xl border border-border bg-card p-5 shadow-sm"
+            className="rounded-2xl border border-border bg-card p-5 shadow-sm transition-all hover:shadow-md hover:border-brand-500/30 hover:scale-[1.01]"
           >
             <div className="flex items-start justify-between gap-3">
               <div className="text-[11px] uppercase tracking-wider font-semibold text-muted-foreground">
@@ -273,7 +274,7 @@ export default async function DashboardPage() {
                     <div className="text-xs text-muted-foreground flex items-center gap-1.5">
                       <span>{formatJam(new Date(t.trxDate))}</span>
                       <span className="size-1 rounded-full bg-border" />
-                      <span className="uppercase">{t.paymentMethod}</span>
+                      <span>{getPaymentMethodLabel(t.paymentMethod)}</span>
                       {t.status !== 'completed' && (
                         <>
                           <span className="size-1 rounded-full bg-border" />
@@ -348,7 +349,7 @@ function QuickLink({
   return (
     <Link
       href={href}
-      className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-muted transition-colors group"
+      className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-brand-500/10 hover:border-brand-500/30 transition-colors group"
     >
       <div className="size-9 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
         <Icon className="size-4" />

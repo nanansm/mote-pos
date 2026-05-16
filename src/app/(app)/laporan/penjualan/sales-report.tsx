@@ -15,6 +15,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { formatRupiah } from '@/lib/format'
+import { getPaymentMethodLabel } from '@/lib/payment-methods/labels'
 
 type Resp = {
   summary: { total: number; count: number; items: number; avgPerTrx: number }
@@ -156,7 +157,7 @@ export function SalesReport() {
             <tbody className="divide-y divide-border">
               {(data?.byMethod ?? []).map((m) => (
                 <tr key={m.method}>
-                  <td className="px-5 py-2.5 font-semibold uppercase">{m.method}</td>
+                  <td className="px-5 py-2.5 font-semibold">{getPaymentMethodLabel(m.method)}</td>
                   <td className="px-5 py-2.5 text-right tabular-nums">{m.count}</td>
                   <td className="px-5 py-2.5 text-right tabular-nums">{formatRupiah(m.total)}</td>
                   <td className="px-5 py-2.5 text-right tabular-nums text-muted-foreground">

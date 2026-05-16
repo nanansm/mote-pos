@@ -219,17 +219,6 @@ export function OnboardingClient({ defaultName }: { defaultName: string }) {
                 rows={2}
               />
             </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="o-printer">IP Printer Thermal (opsional)</Label>
-              <Input
-                id="o-printer"
-                value={outlet.printerIp}
-                onChange={(e) => setOutlet({ ...outlet, printerIp: e.target.value })}
-                placeholder="cth. 192.168.1.50"
-              />
-              <p className="text-xs text-muted-foreground">Bisa diisi nanti di pengaturan.</p>
-            </div>
-
             <div className="flex gap-2 pt-2">
               <Button variant="outline" onClick={() => setStep(1)} className="flex-1 h-11 gap-2">
                 <ArrowLeft className="size-4" /> Kembali

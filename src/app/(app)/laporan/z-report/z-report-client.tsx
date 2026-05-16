@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { formatRupiah } from '@/lib/format'
+import { getPaymentMethodLabel } from '@/lib/payment-methods/labels'
 
 type Resp = {
   date: string
@@ -78,7 +79,7 @@ export function ZReportClient() {
           <Section title="Per Metode Bayar">
             <SimpleTable
               rows={data.byMethod.map((m) => ({
-                left: m.method.toUpperCase(),
+                left: getPaymentMethodLabel(m.method),
                 mid: String(m.count),
                 right: formatRupiah(m.total),
               }))}

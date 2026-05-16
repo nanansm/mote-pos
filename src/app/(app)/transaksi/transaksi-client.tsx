@@ -30,13 +30,14 @@ import {
   DialogDescription,
 } from '@/components/ui/dialog'
 import { formatRupiah } from '@/lib/format'
+import { getPaymentMethodLabel } from '@/lib/payment-methods/labels'
 
 type Row = {
   id: string
   trxNumber: string
   trxDate: string
   total: number
-  paymentMethod: 'cash' | 'qris' | 'transfer'
+  paymentMethod: string
   status: 'completed' | 'voided' | 'refunded'
   cashierName: string
   itemCount: number
@@ -258,8 +259,8 @@ export function TransaksiClient() {
                     <td className="px-4 py-2.5 text-right tabular-nums font-semibold">
                       {formatRupiah(r.total)}
                     </td>
-                    <td className="px-4 py-2.5 uppercase text-xs font-semibold text-muted-foreground">
-                      {r.paymentMethod}
+                    <td className="px-4 py-2.5 text-xs font-semibold text-muted-foreground">
+                      {getPaymentMethodLabel(r.paymentMethod)}
                     </td>
                     <td className="px-4 py-2.5">
                       <StatusBadge status={r.status} />

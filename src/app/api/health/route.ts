@@ -10,14 +10,20 @@ export async function GET() {
   let redisStatus = 'disconnected'
 
   try {
-    await db.execute(sql`SELECT 1`)
+    await Promise.race([
+      db.execute(sql`SELECT 1`),
+      new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 3000)),
+    ])
     dbStatus = 'connected'
   } catch (err) {
     console.error('[health] db error', err)
   }
 
   try {
-    await redis.ping()
+    await Promise.race([
+      redis.ping(),
+      new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 2000)),
+    ])
     redisStatus = 'connected'
   } catch (err) {
     console.error('[health] redis error', err)

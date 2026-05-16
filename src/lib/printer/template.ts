@@ -1,4 +1,5 @@
 import { EscPosBuilder, rightAlignTwoColumns } from './escpos'
+import { getPaymentMethodLabel } from '../payment-methods/labels'
 
 const WIDTH = 32 // 58mm = ~32 chars; 80mm = 48
 
@@ -106,7 +107,7 @@ export function buildReceiptCommands(data: ReceiptInput): Buffer {
   b.feed(1)
   b.line(
     rightAlignTwoColumns(
-      data.trx.paymentMethod.toUpperCase(),
+      getPaymentMethodLabel(data.trx.paymentMethod),
       `Rp ${formatRupiahShort(data.trx.paymentAmount)}`,
       WIDTH,
     ),

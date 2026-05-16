@@ -2,6 +2,7 @@ import { betterAuth } from 'better-auth'
 import { drizzleAdapter } from 'better-auth/adapters/drizzle'
 import { db } from './db'
 import { user, session, account, verification } from './db/schema'
+import { env } from './env'
 
 export const auth = betterAuth({
   database: drizzleAdapter(db, {
@@ -22,12 +23,9 @@ export const auth = betterAuth({
       maxAge: 60 * 5,
     },
   },
-  trustedOrigins: [
-    process.env.BETTER_AUTH_URL ?? 'http://localhost:3030',
-    process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3030',
-  ].filter(Boolean) as string[],
-  secret: process.env.BETTER_AUTH_SECRET,
-  baseURL: process.env.BETTER_AUTH_URL ?? 'http://localhost:3030',
+  trustedOrigins: [env.BETTER_AUTH_URL, env.NEXT_PUBLIC_APP_URL].filter(Boolean) as string[],
+  secret: env.BETTER_AUTH_SECRET,
+  baseURL: env.BETTER_AUTH_URL,
 })
 
 export type Session = typeof auth.$Infer.Session

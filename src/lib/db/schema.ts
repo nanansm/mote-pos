@@ -314,6 +314,10 @@ export const transactions = mp.table(
     voidedBy: text('voided_by').references(() => cashiers.id),
     voidedAt: timestamp('voided_at', { withTimezone: true }),
     voidReason: text('void_reason'),
+    pickupStatus: text('pickup_status').notNull().default('pickup_immediate'),
+    pickupAt: timestamp('pickup_at', { withTimezone: true }),
+    pickupByCashierId: text('pickup_by_cashier_id').references(() => cashiers.id, { onDelete: 'set null' }),
+    pickupNotes: text('pickup_notes'),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
@@ -321,6 +325,7 @@ export const transactions = mp.table(
     uniqueIndex('trx_workspace_number_uniq').on(t.workspaceId, t.trxNumber),
     index('trx_workspace_date_idx').on(t.workspaceId, t.trxDate),
     index('trx_shift_idx').on(t.shiftId),
+    index('trx_pickup_status_idx').on(t.workspaceId, t.pickupStatus),
   ],
 )
 
@@ -356,6 +361,7 @@ export const customers = mp.table(
     notes: text('notes'),
     totalPurchases: bigint('total_purchases', { mode: 'number' }).notNull().default(0),
     totalDebt: bigint('total_debt', { mode: 'number' }).notNull().default(0),
+    totalDepositBalance: bigint('total_deposit_balance', { mode: 'number' }).notNull().default(0),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
@@ -531,4 +537,92 @@ export const syncEvents = mp.table(
     index('sync_workspace_status_idx').on(t.workspaceId, t.status),
     index('sync_created_idx').on(t.createdAt),
   ],
+)
+
+// ============================================================================
+// STEP 5 — Cashier PIN sessions
+// ============================================================================
+
+export const cashierSessions = mp.table(
+  'cashier_sessions',
+  {
+    id: text('id').primaryKey(),
+    cashierId: text('cashier_id').notNull().references(() => cashiers.id, { onDelete: 'cascade' }),
+    workspaceId: text('workspace_id').notNull().references(() => workspaces.id, { onDelete: 'cascade' }),
+    outletId: text('outlet_id').notNull().references(() => outlets.id, { onDelete: 'cascade' }),
+    shiftId: text('shift_id').references(() => shiftSessions.id, { onDelete: 'set null' }),
+    token: text('token').notNull().unique(),
+    expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index('cashier_sessions_token_idx').on(t.token),
+    index('cashier_sessions_cashier_idx').on(t.cashierId),
+  ],
+)
+
+// ============================================================================
+// STEP 8 — Payment methods (custom per workspace)
+// ============================================================================
+
+export const paymentMethods = mp.table(
+  'payment_methods',
+  {
+    id: text('id').primaryKey(),
+    workspaceId: text('workspace_id').notNull().references(() => workspaces.id, { onDelete: 'cascade' }),
+    code: text('code').notNull(),
+    label: text('label').notNull(),
+    type: text('type').notNull(), // 'cash' | 'cashless' | 'debt' | 'deposit'
+    isDefault: boolean('is_default').notNull().default(false),
+    isActive: boolean('is_active').notNull().default(true),
+    sortOrder: integer('sort_order').notNull().default(0),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index('payment_methods_workspace_idx').on(t.workspaceId),
+    uniqueIndex('payment_methods_workspace_code_unique').on(t.workspaceId, t.code),
+  ],
+)
+
+// ============================================================================
+// STEP 10 — Customer deposits (titipan uang)
+// ============================================================================
+
+export const customerDeposits = mp.table(
+  'customer_deposits',
+  {
+    id: text('id').primaryKey(),
+    workspaceId: text('workspace_id').notNull().references(() => workspaces.id, { onDelete: 'cascade' }),
+    customerId: text('customer_id').notNull().references(() => customers.id, { onDelete: 'cascade' }),
+    amount: bigint('amount', { mode: 'number' }).notNull(),
+    balance: bigint('balance', { mode: 'number' }).notNull(),
+    notes: text('notes'),
+    shiftId: text('shift_id').references(() => shiftSessions.id, { onDelete: 'set null' }),
+    createdByCashierId: text('created_by_cashier_id').references(() => cashiers.id, { onDelete: 'set null' }),
+    paymentMethod: text('payment_method').notNull(),
+    status: text('status').notNull().default('active'),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index('customer_deposits_workspace_idx').on(t.workspaceId),
+    index('customer_deposits_customer_idx').on(t.customerId, t.status),
+  ],
+)
+
+export const depositUsages = mp.table(
+  'deposit_usages',
+  {
+    id: text('id').primaryKey(),
+    depositId: text('deposit_id').notNull().references(() => customerDeposits.id, { onDelete: 'cascade' }),
+    transactionId: text('transaction_id').references(() => transactions.id, { onDelete: 'set null' }),
+    amount: bigint('amount', { mode: 'number' }).notNull(),
+    balanceAfter: bigint('balance_after', { mode: 'number' }).notNull(),
+    usedByCashierId: text('used_by_cashier_id').references(() => cashiers.id, { onDelete: 'set null' }),
+    shiftId: text('shift_id').references(() => shiftSessions.id, { onDelete: 'set null' }),
+    notes: text('notes'),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index('deposit_usages_deposit_idx').on(t.depositId)],
 )

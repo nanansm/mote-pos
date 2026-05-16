@@ -1,7 +1,7 @@
-import { StrukSettings } from './struk-settings'
+import { redirect } from 'next/navigation'
 
 export const dynamic = 'force-dynamic'
 
-export default function PengaturanStrukPage() {
-  return <StrukSettings />
+export default function PengaturanStrukRedirect() {
+  redirect('/pengaturan?tab=struk')
 }

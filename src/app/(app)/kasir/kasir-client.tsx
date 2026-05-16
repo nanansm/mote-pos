@@ -115,9 +115,17 @@ type CustomerHit = {
   totalDebt: number
 }
 
+type PaymentMethodOpt = {
+  id: string
+  code: string
+  label: string
+  type: 'cash' | 'cashless' | 'debt' | 'deposit'
+  isActive: boolean
+}
+
 type Payment = {
   uid: string
-  method: 'cash' | 'qris' | 'transfer' | 'debt'
+  method: string
   amount: number
 }
 
@@ -207,7 +215,7 @@ export function KasirClient({
   const [customerName, setCustomerName] = useState('')
   const [customerPhone, setCustomerPhone] = useState('')
   const [customerId, setCustomerId] = useState<string | null>(null)
-  const [saveCustomer, setSaveCustomer] = useState(false)
+  const [activeHeldCartId, setActiveHeldCartId] = useState<string | null>(null)
   const [customerHits, setCustomerHits] = useState<CustomerHit[]>([])
   const [payments, setPayments] = useState<Payment[]>([
     { uid: uidGen(), method: 'cash', amount: 0 },
@@ -215,6 +223,9 @@ export function KasirClient({
   const [paymentNotes, setPaymentNotes] = useState('')
   const [submitting, setSubmitting] = useState(false)
 
+  const [paymentMethodsOpts, setPaymentMethodsOpts] = useState<PaymentMethodOpt[]>([])
+  const [pickupPending, setPickupPending] = useState(false)
+  const [pickupNotes, setPickupNotes] = useState('')
   const [heldCarts, setHeldCarts] = useState<HeldCart[]>([])
   const [heldOpen, setHeldOpen] = useState(false)
   const [holdOpen, setHoldOpen] = useState(false)
@@ -265,6 +276,15 @@ export function KasirClient({
   useEffect(() => {
     loadHeld()
   }, [loadHeld])
+
+  useEffect(() => {
+    ;(async () => {
+      const res = await fetch('/api/payment-methods?active=true')
+      if (!res.ok) return
+      const j = await res.json()
+      setPaymentMethodsOpts(j.data ?? [])
+    })()
+  }, [])
 
   const filteredGroups = useMemo(() => {
     const q = search.toLowerCase()
@@ -547,6 +567,7 @@ export function KasirClient({
     setCustomerName('')
     setCustomerPhone('')
     setCustomerId(null)
+    setActiveHeldCartId(null)
     setHoldOpen(false)
     loadHeld()
   }
@@ -559,9 +580,9 @@ export function KasirClient({
     setCustomerName(h.customerName ?? '')
     setCustomerPhone(h.customerPhone ?? '')
     setCustomerId(h.customerId)
-    await fetch(`/api/held-carts/${h.id}`, { method: 'DELETE' })
+    setActiveHeldCartId(h.id)
     setHeldOpen(false)
-    loadHeld()
+    router.refresh()
     toast.success(`Resume: ${h.label}`)
   }
 
@@ -587,15 +608,16 @@ export function KasirClient({
     setCustomerName(h.name)
     setCustomerPhone(h.phone ?? '')
     setCustomerHits([])
-    setSaveCustomer(false)
   }
 
   const submitPayment = async () => {
     if (!shiftId || !cashierId) return
     if (totalPaid < total - 0.5) return toast.error('Total bayar kurang dari tagihan')
-    const hasDebt = payments.some((p) => p.method === 'debt')
-    if (hasDebt && !customerId && !(customerName.trim() && saveCustomer)) {
-      return toast.error('Metode Hutang butuh pelanggan terdaftar. Centang "Simpan".')
+    const hasDebt = payments.some(
+      (p) => paymentMethodsOpts.find((m) => m.code === p.method)?.type === 'debt',
+    )
+    if (hasDebt && !customerId && !(customerName.trim() || customerPhone.trim())) {
+      return toast.error('Metode Hutang butuh nama atau HP pelanggan.')
     }
 
     const itemsPayload = cart.map((c) => ({
@@ -628,7 +650,9 @@ export function KasirClient({
         customerId,
         customerName: customerName.trim() || null,
         customerPhone: customerPhone.trim() || null,
-        saveCustomer,
+        heldCartId: activeHeldCartId,
+        pickupStatus: pickupPending ? 'pickup_pending' : 'pickup_immediate',
+        pickupNotes: pickupPending ? pickupNotes.trim() || null : null,
         notes: paymentNotes.trim() || null,
       }),
     })
@@ -647,8 +671,11 @@ export function KasirClient({
     setCustomerName('')
     setCustomerPhone('')
     setCustomerId(null)
-    setSaveCustomer(false)
+    setActiveHeldCartId(null)
     setPaymentNotes('')
+    setPickupPending(false)
+    setPickupNotes('')
+    loadHeld()
     if (autoPrint) printReceipt(j.id)
   }
 
@@ -1531,16 +1558,10 @@ export function KasirClient({
                   inputMode="tel"
                 />
               </div>
-              {!customerId && customerName.trim() && (
-                <label className="flex items-center gap-2 text-sm cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={saveCustomer}
-                    onChange={(e) => setSaveCustomer(e.target.checked)}
-                    className="size-4 rounded border-border accent-primary"
-                  />
-                  Simpan ke database pelanggan
-                </label>
+              {!customerId && (customerName.trim() || customerPhone.trim()) && (
+                <p className="text-xs text-muted-foreground">
+                  Pelanggan akan otomatis tersimpan kalau nama atau HP diisi.
+                </p>
               )}
               {customerId && (
                 <p className="text-xs text-success font-semibold flex items-center gap-1">
@@ -1565,14 +1586,16 @@ export function KasirClient({
               </div>
 
               {payments.map((p, idx) => {
-                const debtDisabled = !customerId && !(customerName.trim() && saveCustomer)
-                const isCash = p.method === 'cash'
-                // For cash, compute "required" portion: total - sum of non-cash payments
+                const customerHasInfo =
+                  !!customerId || !!customerName.trim() || !!customerPhone.trim()
+                const opt = paymentMethodsOpts.find((m) => m.code === p.method)
+                const isCash = opt?.type === 'cash'
+                const isDebtMethod = opt?.type === 'debt'
                 const nonCashSum = payments
-                  .filter((x, i) => i !== idx && x.method !== 'cash')
+                  .filter((x, i) => i !== idx && paymentMethodsOpts.find((m) => m.code === x.method)?.type !== 'cash')
                   .reduce((s, x) => s + x.amount, 0)
                 const otherCashSum = payments
-                  .filter((x, i) => i !== idx && x.method === 'cash')
+                  .filter((x, i) => i !== idx && paymentMethodsOpts.find((m) => m.code === x.method)?.type === 'cash')
                   .reduce((s, x) => s + x.amount, 0)
                 const cashRequired = isCash
                   ? Math.max(0, total - nonCashSum - otherCashSum)
@@ -1583,18 +1606,23 @@ export function KasirClient({
                     <div className="flex items-center gap-2">
                       <Select
                         value={p.method}
-                        onValueChange={(v) => updatePayment(p.uid, { method: v as Payment['method'] })}
+                        onValueChange={(v) =>
+                          updatePayment(p.uid, { method: (v ?? 'cash') as Payment['method'] })
+                        }
                       >
-                        <SelectTrigger className="w-28">
+                        <SelectTrigger className="w-32">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="cash">Cash</SelectItem>
-                          <SelectItem value="qris">QRIS</SelectItem>
-                          <SelectItem value="transfer">Transfer</SelectItem>
-                          <SelectItem value="debt" disabled={debtDisabled}>
-                            Hutang
-                          </SelectItem>
+                          {paymentMethodsOpts.map((m) => (
+                            <SelectItem
+                              key={m.code}
+                              value={m.code}
+                              disabled={m.type === 'debt' && !customerHasInfo}
+                            >
+                              {m.label}
+                            </SelectItem>
+                          ))}
                         </SelectContent>
                       </Select>
                       <CurrencyInput
@@ -1606,7 +1634,7 @@ export function KasirClient({
                         <button
                           type="button"
                           onClick={() => removePayment(p.uid)}
-                          className="p-1.5 text-muted-foreground hover:text-destructive"
+                          className="p-1.5 text-muted-foreground hover:text-destructive transition-colors"
                           aria-label="Hapus metode"
                         >
                           <X className="size-4" />
@@ -1619,6 +1647,11 @@ export function KasirClient({
                         value={p.amount}
                         onPick={(n) => updatePayment(p.uid, { amount: n })}
                       />
+                    )}
+                    {isDebtMethod && !customerHasInfo && (
+                      <p className="text-xs text-destructive">
+                        Isi nama atau HP pelanggan untuk metode Hutang.
+                      </p>
                     )}
                   </div>
                 )
@@ -1645,6 +1678,43 @@ export function KasirClient({
                   </div>
                 ) : null}
               </div>
+            </div>
+
+            <div className="space-y-2 rounded-lg border border-border p-3">
+              <div className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                Pengambilan Barang
+              </div>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setPickupPending(false)}
+                  className={`flex-1 h-10 rounded-md text-sm font-semibold transition-colors ${
+                    !pickupPending
+                      ? 'bg-foreground text-background'
+                      : 'bg-muted text-muted-foreground hover:bg-muted/70'
+                  }`}
+                >
+                  Diambil sekarang
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPickupPending(true)}
+                  className={`flex-1 h-10 rounded-md text-sm font-semibold transition-colors ${
+                    pickupPending
+                      ? 'bg-foreground text-background'
+                      : 'bg-muted text-muted-foreground hover:bg-muted/70'
+                  }`}
+                >
+                  Titip dulu
+                </button>
+              </div>
+              {pickupPending && (
+                <Input
+                  value={pickupNotes}
+                  onChange={(e) => setPickupNotes(e.target.value)}
+                  placeholder="Catatan pickup (opsional)"
+                />
+              )}
             </div>
 
             <div className="space-y-1.5">

@@ -1,7 +1,7 @@
-import { IntegrasiClient } from './integrasi-client'
+import { redirect } from 'next/navigation'
 
 export const dynamic = 'force-dynamic'
 
-export default function IntegrasiPage() {
-  return <IntegrasiClient />
+export default function PengaturanIntegrasiRedirect() {
+  redirect('/pengaturan?tab=integrasi')
 }

@@ -12,6 +12,7 @@ import {
   workspaces,
 } from '@/lib/db/schema'
 import { getCurrentContext } from '@/lib/session'
+import { getPaymentMethodLabel } from '@/lib/payment-methods/labels'
 import { AutoPrint } from '../../auto-print'
 
 export const dynamic = 'force-dynamic'
@@ -198,13 +199,13 @@ export default async function PrintReceiptPage({
         <hr className="divider" />
         {payments.length === 0 ? (
           <div className="row">
-            <span>{trx.paymentMethod.toUpperCase()}</span>
+            <span>{getPaymentMethodLabel(trx.paymentMethod)}</span>
             <span>{fmtRupiah(Number(trx.paymentAmount))}</span>
           </div>
         ) : (
           payments.map((p) => (
             <div key={p.id} className="row">
-              <span>{p.method.toUpperCase()}</span>
+              <span>{getPaymentMethodLabel(p.method)}</span>
               <span>{fmtRupiah(Number(p.amount))}</span>
             </div>
           ))
@@ -253,6 +254,33 @@ export default async function PrintReceiptPage({
               ** {isVoid ? 'TRANSAKSI VOIDED' : isPartial ? 'PARTIAL REFUND' : 'REFUNDED'} **
             </div>
             {trx.voidReason && <div className="center small">{trx.voidReason}</div>}
+          </>
+        )}
+
+        {trx.pickupStatus === 'pickup_pending' && (
+          <>
+            <hr className="divider" />
+            <div className="center bold">*** BARANG BELUM DIAMBIL ***</div>
+            <div className="center small">Tunjukkan struk saat ambil</div>
+            {trx.pickupNotes && (
+              <div className="center small">Catatan: {trx.pickupNotes}</div>
+            )}
+          </>
+        )}
+        {trx.pickupStatus === 'pickup_completed' && trx.pickupAt && (
+          <>
+            <hr className="divider" />
+            <div className="center small">
+              ✓ Sudah Diambil{' '}
+              {new Date(trx.pickupAt).toLocaleString('id-ID', {
+                day: '2-digit',
+                month: '2-digit',
+                year: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: false,
+              })}
+            </div>
           </>
         )}
 

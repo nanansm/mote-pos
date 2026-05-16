@@ -1,14 +1,14 @@
 'use client'
 
-import { useState } from 'react'
-import Link from 'next/link'
+import { useEffect, useState } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { toast } from 'sonner'
-import { Receipt, PlugZap, ShieldAlert, ArrowRight } from 'lucide-react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Button } from '@/components/ui/button'
+import { PasswordInput } from '@/components/ui/password-input'
 import {
   Select,
   SelectContent,
@@ -16,8 +16,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { StrukSettings } from './struk/struk-settings'
+import { IntegrasiClient } from './integrasi/integrasi-client'
+import { AuditClient } from './audit/audit-client'
+import { PaymentMethodsClient } from './payment-methods-client'
 
 type Props = {
+  defaultTab: string
   user: { email: string }
   workspace: {
     id: string
@@ -36,11 +41,27 @@ type Props = {
   }
 }
 
-export function SettingsClient({ user, workspace, outlet }: Props) {
+export function SettingsClient({ defaultTab, user, workspace, outlet }: Props) {
+  const router = useRouter()
+  const sp = useSearchParams()
+  const [tab, setTab] = useState(defaultTab)
   const [ws, setWs] = useState(workspace)
   const [ou, setOu] = useState(outlet)
   const [pwd, setPwd] = useState({ current: '', next: '', confirm: '' })
   const [saving, setSaving] = useState(false)
+
+  useEffect(() => {
+    const urlTab = sp.get('tab')
+    if (urlTab && urlTab !== tab) setTab(urlTab)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sp])
+
+  const onTabChange = (next: string) => {
+    setTab(next)
+    const params = new URLSearchParams(sp.toString())
+    params.set('tab', next)
+    router.replace(`/pengaturan?${params.toString()}`)
+  }
 
   const saveWs = async () => {
     setSaving(true)
@@ -98,38 +119,30 @@ export function SettingsClient({ user, workspace, outlet }: Props) {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight text-neutral-900">
-          Pengaturan
-        </h1>
+        <h1 className="text-2xl font-semibold tracking-tight text-neutral-900">Pengaturan</h1>
         <p className="text-sm text-neutral-600 mt-1">
-          Atur profil toko, outlet, dan akun kamu.
+          Atur profil toko, outlet, akun, struk, integrasi.
         </p>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        <SettingsLink href="/pengaturan/struk" Icon={Receipt} title="Struk & Print" desc="Format struk, auto-print, catatan kustom" />
-        <SettingsLink href="/pengaturan/integrasi" Icon={PlugZap} title="Integrasi" desc="Sync Klir + Google Sheets backup" />
-        <SettingsLink href="/pengaturan/audit" Icon={ShieldAlert} title="Audit Log" desc="Riwayat aksi sensitif manager" />
-      </div>
-
-      <Tabs defaultValue="profile">
-        <TabsList>
+      <Tabs value={tab} onValueChange={onTabChange}>
+        <TabsList variant="line" className="flex-wrap h-auto justify-start gap-1">
           <TabsTrigger value="profile">Profil Toko</TabsTrigger>
           <TabsTrigger value="outlet">Outlet</TabsTrigger>
           <TabsTrigger value="account">Akun</TabsTrigger>
+          <TabsTrigger value="struk">Struk &amp; Print</TabsTrigger>
+          <TabsTrigger value="integrasi">Integrasi</TabsTrigger>
+          <TabsTrigger value="audit">Audit Log</TabsTrigger>
+          <TabsTrigger value="payment">Metode Bayar</TabsTrigger>
         </TabsList>
 
         <TabsContent value="profile">
-          <div className="rounded-xl border border-neutral-200 bg-white p-6 space-y-4 max-w-2xl">
-            <div>
+          <div className="rounded-2xl border border-border bg-card p-6 space-y-4 max-w-2xl">
+            <div className="space-y-1.5">
               <Label>Nama Toko</Label>
-              <Input
-                value={ws.name}
-                onChange={(e) => setWs({ ...ws, name: e.target.value })}
-                className="mt-1"
-              />
+              <Input value={ws.name} onChange={(e) => setWs({ ...ws, name: e.target.value })} />
             </div>
-            <div>
+            <div className="space-y-1.5">
               <Label>Jenis Bisnis</Label>
               <Select
                 value={ws.businessType}
@@ -137,7 +150,7 @@ export function SettingsClient({ user, workspace, outlet }: Props) {
                   setWs({ ...ws, businessType: v as 'resto' | 'retail' | 'jasa' })
                 }
               >
-                <SelectTrigger className="mt-1">
+                <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -147,142 +160,145 @@ export function SettingsClient({ user, workspace, outlet }: Props) {
                 </SelectContent>
               </Select>
             </div>
-            <div>
+            <div className="space-y-1.5">
               <Label>Alamat</Label>
               <Textarea
                 value={ws.address}
                 onChange={(e) => setWs({ ...ws, address: e.target.value })}
-                className="mt-1"
                 rows={2}
               />
             </div>
-            <div>
+            <div className="space-y-1.5">
               <Label>Nomor HP</Label>
-              <Input
-                value={ws.phone}
-                onChange={(e) => setWs({ ...ws, phone: e.target.value })}
-                className="mt-1"
-              />
+              <Input value={ws.phone} onChange={(e) => setWs({ ...ws, phone: e.target.value })} />
             </div>
-            <Button onClick={saveWs} disabled={saving}>
+            <Button
+              onClick={saveWs}
+              disabled={saving}
+              className="font-semibold transition-colors hover:bg-brand-500/90"
+            >
               {saving ? 'Menyimpan…' : 'Simpan Perubahan'}
             </Button>
           </div>
         </TabsContent>
 
         <TabsContent value="outlet">
-          <div className="rounded-xl border border-neutral-200 bg-white p-6 space-y-4 max-w-2xl">
-            <div>
+          <div className="rounded-2xl border border-border bg-card p-6 space-y-4 max-w-2xl">
+            <div className="space-y-1.5">
               <Label>Nama Outlet</Label>
-              <Input
-                value={ou.name}
-                onChange={(e) => setOu({ ...ou, name: e.target.value })}
-                className="mt-1"
-              />
+              <Input value={ou.name} onChange={(e) => setOu({ ...ou, name: e.target.value })} />
             </div>
-            <div>
+            <div className="space-y-1.5">
               <Label>Alamat Outlet</Label>
               <Textarea
                 value={ou.address}
                 onChange={(e) => setOu({ ...ou, address: e.target.value })}
-                className="mt-1"
                 rows={2}
               />
             </div>
-            <div>
+            <div className="space-y-1.5">
               <Label>Telepon Outlet</Label>
-              <Input
-                value={ou.phone}
-                onChange={(e) => setOu({ ...ou, phone: e.target.value })}
-                className="mt-1"
-              />
+              <Input value={ou.phone} onChange={(e) => setOu({ ...ou, phone: e.target.value })} />
             </div>
-            <div className="rounded-lg border border-dashed border-border bg-muted/40 p-3 text-sm text-muted-foreground">
-              Format struk thermal, auto-print, dan catatan struk diatur di{' '}
-              <a href="/pengaturan/struk" className="text-primary font-semibold underline-offset-4 hover:underline">
-                Pengaturan → Struk
-              </a>
-              .
+            <div className="grid grid-cols-1 sm:grid-cols-[1fr_120px] gap-3">
+              <div className="space-y-1.5">
+                <Label htmlFor="outlet-printer-ip">IP Printer Thermal (opsional)</Label>
+                <Input
+                  id="outlet-printer-ip"
+                  value={ou.printerIp}
+                  onChange={(e) => setOu({ ...ou, printerIp: e.target.value })}
+                  placeholder="cth. 192.168.1.50"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="outlet-printer-port">Port</Label>
+                <Input
+                  id="outlet-printer-port"
+                  type="number"
+                  inputMode="numeric"
+                  value={ou.printerPort || ''}
+                  onChange={(e) =>
+                    setOu({ ...ou, printerPort: parseInt(e.target.value || '9100', 10) })
+                  }
+                  placeholder="9100"
+                />
+              </div>
             </div>
-            <Button onClick={saveOutlet} disabled={saving}>
+            <p className="text-xs text-muted-foreground">
+              Untuk visioner LAN printer. Kosongkan kalau cetak via browser saja.
+            </p>
+            <Button
+              onClick={saveOutlet}
+              disabled={saving}
+              className="font-semibold transition-colors hover:bg-brand-500/90"
+            >
               {saving ? 'Menyimpan…' : 'Simpan Perubahan'}
             </Button>
           </div>
         </TabsContent>
 
         <TabsContent value="account">
-          <div className="rounded-xl border border-neutral-200 bg-white p-6 space-y-4 max-w-2xl">
-            <div>
+          <div className="rounded-2xl border border-border bg-card p-6 space-y-4 max-w-2xl">
+            <div className="space-y-1.5">
               <Label>Email</Label>
-              <Input value={user.email} disabled className="mt-1" />
-              <p className="text-xs text-neutral-500 mt-1">
+              <Input value={user.email} disabled />
+              <p className="text-xs text-muted-foreground">
                 Ubah email akan tersedia di update berikutnya.
               </p>
             </div>
-            <div className="border-t border-neutral-200 pt-4">
-              <h3 className="font-medium text-neutral-900">Ganti Password</h3>
+            <div className="border-t border-border pt-4">
+              <h3 className="font-semibold">Ganti Password</h3>
             </div>
-            <div>
-              <Label>Password saat ini</Label>
-              <Input
-                type="password"
+            <div className="space-y-1.5">
+              <Label htmlFor="pwd-current">Password saat ini</Label>
+              <PasswordInput
+                id="pwd-current"
                 value={pwd.current}
                 onChange={(e) => setPwd({ ...pwd, current: e.target.value })}
-                className="mt-1"
               />
             </div>
-            <div>
-              <Label>Password baru</Label>
-              <Input
-                type="password"
+            <div className="space-y-1.5">
+              <Label htmlFor="pwd-next">Password baru</Label>
+              <PasswordInput
+                id="pwd-next"
                 value={pwd.next}
                 onChange={(e) => setPwd({ ...pwd, next: e.target.value })}
-                className="mt-1"
               />
             </div>
-            <div>
-              <Label>Konfirmasi password baru</Label>
-              <Input
-                type="password"
+            <div className="space-y-1.5">
+              <Label htmlFor="pwd-confirm">Konfirmasi password baru</Label>
+              <PasswordInput
+                id="pwd-confirm"
                 value={pwd.confirm}
                 onChange={(e) => setPwd({ ...pwd, confirm: e.target.value })}
-                className="mt-1"
               />
             </div>
-            <Button onClick={savePassword} disabled={saving}>
+            <Button
+              onClick={savePassword}
+              disabled={saving}
+              className="font-semibold transition-colors hover:bg-brand-500/90"
+            >
               {saving ? 'Menyimpan…' : 'Ganti Password'}
             </Button>
           </div>
         </TabsContent>
+
+        <TabsContent value="struk">
+          <StrukSettings />
+        </TabsContent>
+
+        <TabsContent value="integrasi">
+          <IntegrasiClient />
+        </TabsContent>
+
+        <TabsContent value="audit">
+          <AuditClient />
+        </TabsContent>
+
+        <TabsContent value="payment">
+          <PaymentMethodsClient />
+        </TabsContent>
       </Tabs>
     </div>
-  )
-}
-
-function SettingsLink({
-  href,
-  Icon,
-  title,
-  desc,
-}: {
-  href: string
-  Icon: React.ComponentType<{ className?: string }>
-  title: string
-  desc: string
-}) {
-  return (
-    <Link
-      href={href}
-      className="group rounded-2xl border border-border bg-card p-4 hover:border-primary hover:shadow-md transition-all flex items-start gap-3"
-    >
-      <div className="size-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
-        <Icon className="size-5" />
-      </div>
-      <div className="flex-1 min-w-0">
-        <div className="font-bold text-sm">{title}</div>
-        <p className="text-xs text-muted-foreground mt-0.5">{desc}</p>
-      </div>
-      <ArrowRight className="size-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity self-center" />
-    </Link>
   )
 }

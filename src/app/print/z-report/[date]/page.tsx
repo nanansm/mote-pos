@@ -3,6 +3,8 @@ import { eq } from 'drizzle-orm'
 import { db } from '@/lib/db'
 import { workspaces, outlets } from '@/lib/db/schema'
 import { getCurrentContext } from '@/lib/session'
+import { env } from '@/lib/env'
+import { getPaymentMethodLabel } from '@/lib/payment-methods/labels'
 import { AutoPrint } from '../../auto-print'
 
 export const dynamic = 'force-dynamic'
@@ -53,7 +55,7 @@ export default async function PrintZReportPage({
 
   // Server-side fetch to avoid auth issue
   const url = new URL(
-    `${process.env.BETTER_AUTH_URL ?? 'http://localhost:3030'}/api/reports/z-report?date=${date}`,
+    `${env.BETTER_AUTH_URL || 'http://localhost:3030'}/api/reports/z-report?date=${date}`,
   )
   let data: Resp | null = null
   try {
@@ -105,7 +107,7 @@ export default async function PrintZReportPage({
             return (
               <div key={m.method} className="row small">
                 <span>
-                  {m.method.toUpperCase().padEnd(10, ' ')}
+                  {getPaymentMethodLabel(m.method).padEnd(10, ' ')}
                 </span>
                 <span>
                   {fmtRupiah(m.total)} ({fmtPct(pct)})

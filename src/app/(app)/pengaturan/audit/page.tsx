@@ -1,7 +1,7 @@
-import { AuditClient } from './audit-client'
+import { redirect } from 'next/navigation'
 
 export const dynamic = 'force-dynamic'
 
-export default function AuditPage() {
-  return <AuditClient />
+export default function PengaturanAuditRedirect() {
+  redirect('/pengaturan?tab=audit')
 }
