@@ -31,6 +31,7 @@ import { PaymentMethodsClient } from './payment-methods-client'
 
 type Props = {
   defaultTab: string
+  isCashier?: boolean
   user: { email: string; role: 'user' | 'owner' }
   isWorkspaceOwner: boolean
   workspace: {
@@ -51,7 +52,7 @@ type Props = {
   }
 }
 
-export function SettingsClient({ defaultTab, user, isWorkspaceOwner, workspace, outlet }: Props) {
+export function SettingsClient({ defaultTab, isCashier = false, user, isWorkspaceOwner, workspace, outlet }: Props) {
   const router = useRouter()
   const sp = useSearchParams()
   const [tab, setTab] = useState(defaultTab)
@@ -126,16 +127,22 @@ export function SettingsClient({ defaultTab, user, isWorkspaceOwner, workspace, 
 
   const saveOutlet = async () => {
     setSaving(true)
+    const body = isCashier
+      ? {
+          printerIp: ou.printerIp || null,
+          printerPort: ou.printerPort || 9100,
+        }
+      : {
+          name: ou.name,
+          address: ou.address || null,
+          phone: ou.phone || null,
+          printerIp: ou.printerIp || null,
+          printerPort: ou.printerPort || 9100,
+        }
     const res = await fetch(`/api/outlets/${ou.id}`, {
       method: 'PUT',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({
-        name: ou.name,
-        address: ou.address || null,
-        phone: ou.phone || null,
-        printerIp: ou.printerIp || null,
-        printerPort: ou.printerPort || 9100,
-      }),
+      body: JSON.stringify(body),
     })
     setSaving(false)
     if (!res.ok) return toast.error('Gagal menyimpan')
@@ -171,13 +178,13 @@ export function SettingsClient({ defaultTab, user, isWorkspaceOwner, workspace, 
 
       <Tabs value={tab} onValueChange={onTabChange}>
         <TabsList variant="line" className="flex-wrap h-auto justify-start gap-1">
-          <TabsTrigger value="profile">Profil Toko</TabsTrigger>
+          {!isCashier && <TabsTrigger value="profile">Profil Toko</TabsTrigger>}
           <TabsTrigger value="outlet">Outlet</TabsTrigger>
-          <TabsTrigger value="account">Akun</TabsTrigger>
-          <TabsTrigger value="struk">Struk &amp; Print</TabsTrigger>
-          <TabsTrigger value="integrasi">Integrasi</TabsTrigger>
-          <TabsTrigger value="audit">Audit Log</TabsTrigger>
-          <TabsTrigger value="payment">Metode Bayar</TabsTrigger>
+          {!isCashier && <TabsTrigger value="account">Akun</TabsTrigger>}
+          {!isCashier && <TabsTrigger value="struk">Struk &amp; Print</TabsTrigger>}
+          {!isCashier && <TabsTrigger value="integrasi">Integrasi</TabsTrigger>}
+          {!isCashier && <TabsTrigger value="audit">Audit Log</TabsTrigger>}
+          {!isCashier && <TabsTrigger value="payment">Metode Bayar</TabsTrigger>}
         </TabsList>
 
         <TabsContent value="profile">
@@ -227,7 +234,7 @@ export function SettingsClient({ defaultTab, user, isWorkspaceOwner, workspace, 
         </TabsContent>
 
         <TabsContent value="outlet" className="space-y-6">
-          {isWorkspaceOwner && (
+          {isWorkspaceOwner && !isCashier && (
             <div className="rounded-2xl border-2 border-brand-500/30 bg-brand-500/5 p-6 space-y-4 max-w-2xl">
               <div className="flex items-center gap-2">
                 <Lock className="size-5 text-brand-700" />
@@ -290,22 +297,31 @@ export function SettingsClient({ defaultTab, user, isWorkspaceOwner, workspace, 
           )}
 
           <div className="rounded-2xl border border-border bg-card p-6 space-y-4 max-w-2xl">
-            <div className="space-y-1.5">
-              <Label>Nama Outlet</Label>
-              <Input value={ou.name} onChange={(e) => setOu({ ...ou, name: e.target.value })} />
-            </div>
-            <div className="space-y-1.5">
-              <Label>Alamat Outlet</Label>
-              <Textarea
-                value={ou.address}
-                onChange={(e) => setOu({ ...ou, address: e.target.value })}
-                rows={2}
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label>Telepon Outlet</Label>
-              <Input value={ou.phone} onChange={(e) => setOu({ ...ou, phone: e.target.value })} />
-            </div>
+            {isCashier && (
+              <div className="rounded-lg bg-muted/40 border border-border p-3 text-xs text-muted-foreground">
+                Sebagai kasir, kamu hanya bisa atur IP printer. Untuk ubah nama/alamat outlet, hubungi owner.
+              </div>
+            )}
+            {!isCashier && (
+              <>
+                <div className="space-y-1.5">
+                  <Label>Nama Outlet</Label>
+                  <Input value={ou.name} onChange={(e) => setOu({ ...ou, name: e.target.value })} />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Alamat Outlet</Label>
+                  <Textarea
+                    value={ou.address}
+                    onChange={(e) => setOu({ ...ou, address: e.target.value })}
+                    rows={2}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Telepon Outlet</Label>
+                  <Input value={ou.phone} onChange={(e) => setOu({ ...ou, phone: e.target.value })} />
+                </div>
+              </>
+            )}
             <div className="grid grid-cols-1 sm:grid-cols-[1fr_120px] gap-3">
               <div className="space-y-1.5">
                 <Label htmlFor="outlet-printer-ip">IP Printer Thermal (opsional)</Label>

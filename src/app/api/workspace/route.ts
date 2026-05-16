@@ -3,7 +3,7 @@ import { z } from 'zod'
 import { eq } from 'drizzle-orm'
 import { db } from '@/lib/db'
 import { workspaces } from '@/lib/db/schema'
-import { requireAuthCtx, isErrResponse } from '@/lib/api-helpers'
+import { requireUserCtx, isErrResponse } from '@/lib/api-helpers'
 
 const Body = z.object({
   name: z.string().min(1).max(120).optional(),
@@ -13,7 +13,7 @@ const Body = z.object({
 })
 
 export async function PUT(req: Request) {
-  const ctx = await requireAuthCtx()
+  const ctx = await requireUserCtx()
   if (isErrResponse(ctx)) return ctx
   const parsed = Body.safeParse(await req.json().catch(() => null))
   if (!parsed.success) return NextResponse.json({ error: 'invalid' }, { status: 400 })

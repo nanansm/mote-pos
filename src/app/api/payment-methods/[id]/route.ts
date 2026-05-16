@@ -3,7 +3,7 @@ import { z } from 'zod'
 import { and, eq } from 'drizzle-orm'
 import { db } from '@/lib/db'
 import { paymentMethods } from '@/lib/db/schema'
-import { requireAuthCtx, isErrResponse } from '@/lib/api-helpers'
+import { requireUserCtx, isErrResponse } from '@/lib/api-helpers'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -20,7 +20,7 @@ export async function PUT(
   req: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const ctx = await requireAuthCtx()
+  const ctx = await requireUserCtx()
   if (isErrResponse(ctx)) return ctx
   const { id } = await params
   const parsed = Body.safeParse(await req.json().catch(() => null))
@@ -56,7 +56,7 @@ export async function DELETE(
   _req: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const ctx = await requireAuthCtx()
+  const ctx = await requireUserCtx()
   if (isErrResponse(ctx)) return ctx
   const { id } = await params
 

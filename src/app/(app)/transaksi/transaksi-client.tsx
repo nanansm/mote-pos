@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
+import Link from 'next/link'
 import { toast } from 'sonner'
 import {
   Search,
@@ -251,8 +252,12 @@ export function TransaksiClient() {
               </thead>
               <tbody className="divide-y divide-border">
                 {rows.map((r) => (
-                  <tr key={r.id} className="hover:bg-muted/30">
-                    <td className="px-4 py-2.5 font-semibold tabular-nums">{r.trxNumber}</td>
+                  <tr key={r.id} className="hover:bg-muted/30 transition-colors">
+                    <td className="px-4 py-2.5 font-semibold tabular-nums">
+                      <Link href={`/transaksi/${r.id}`} className="hover:underline">
+                        {r.trxNumber}
+                      </Link>
+                    </td>
                     <td className="px-4 py-2.5 text-muted-foreground">{formatJam(r.trxDate)}</td>
                     <td className="px-4 py-2.5">{r.cashierName}</td>
                     <td className="px-4 py-2.5 text-right tabular-nums">{r.itemCount}</td>

@@ -13,7 +13,13 @@ type Workspace = {
   businessType: 'resto' | 'retail' | 'jasa'
 }
 type Outlet = { id: string; name: string; address: string }
-type Cashier = { id: string; name: string; role: 'cashier' | 'manager'; outletId: string }
+type Cashier = {
+  id: string
+  name: string
+  role: 'cashier' | 'manager'
+  isOwnerCashier?: boolean
+  outletId: string
+}
 
 const BUSINESS_LABEL: Record<Workspace['businessType'], string> = {
   resto: 'Restoran',
@@ -168,8 +174,16 @@ export function CashierLoginClient({
                             }`}
                           >
                             <div className="font-medium truncate">{c.name}</div>
-                            <div className="text-[10px] uppercase tracking-wider text-muted-foreground">
-                              {c.role === 'manager' ? 'Manager' : 'Cashier'}
+                            <div className="text-[10px] uppercase tracking-wider mt-0.5">
+                              {c.isOwnerCashier ? (
+                                <span className="inline-flex items-center rounded-md bg-brand-500/10 text-brand-700 dark:text-brand-300 px-1.5 py-0.5 font-semibold tracking-wider">
+                                  OWNER
+                                </span>
+                              ) : (
+                                <span className="text-muted-foreground">
+                                  {c.role === 'manager' ? 'Manager' : 'Cashier'}
+                                </span>
+                              )}
                             </div>
                           </button>
                         )

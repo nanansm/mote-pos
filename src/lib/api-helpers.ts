@@ -60,3 +60,21 @@ export async function requireAuthCtx(): Promise<AuthCtx | NextResponse> {
 export function isErrResponse(v: unknown): v is NextResponse {
   return v instanceof NextResponse
 }
+
+/**
+ * Same as requireAuthCtx but rejects cashier sessions with 403.
+ * Use for mutation endpoints that only the workspace owner should hit
+ * (product/category/modifier/payment_method writes, workspace settings,
+ * etc.) so a cashier can't bypass UI restrictions via direct fetch.
+ */
+export async function requireUserCtx(): Promise<AuthCtx | NextResponse> {
+  const ctx = await requireAuthCtx()
+  if (isErrResponse(ctx)) return ctx
+  if (!ctx.userId) {
+    return NextResponse.json(
+      { error: 'forbidden: requires workspace owner' },
+      { status: 403 },
+    )
+  }
+  return ctx
+}

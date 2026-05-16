@@ -9,7 +9,7 @@ import {
   categories,
   modifierGroups,
 } from '@/lib/db/schema'
-import { requireAuthCtx, isErrResponse } from '@/lib/api-helpers'
+import { requireAuthCtx, requireUserCtx, isErrResponse } from '@/lib/api-helpers'
 import { newId } from '@/lib/ids'
 
 export async function GET() {
@@ -77,7 +77,7 @@ const Body = z.object({
  * Prefer POST /api/product-groups for new code.
  */
 export async function POST(req: Request) {
-  const ctx = await requireAuthCtx()
+  const ctx = await requireUserCtx()
   if (isErrResponse(ctx)) return ctx
   const parsed = Body.safeParse(await req.json().catch(() => null))
   if (!parsed.success) {

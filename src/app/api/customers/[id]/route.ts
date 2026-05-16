@@ -4,6 +4,7 @@ import { and, desc, eq } from 'drizzle-orm'
 import { db } from '@/lib/db'
 import { customers, transactions, customerDebts, debtPayments } from '@/lib/db/schema'
 import { requireAuthCtx, isErrResponse } from '@/lib/api-helpers'
+import { verifyManagerPin } from '@/lib/manager-pin'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -84,13 +85,24 @@ export async function PUT(
   return NextResponse.json({ ok: true })
 }
 
+const DeleteBody = z.object({
+  pin: z.string().regex(/^\d{6}$/),
+})
+
 export async function DELETE(
-  _req: Request,
+  req: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
   const ctx = await requireAuthCtx()
   if (isErrResponse(ctx)) return ctx
   const { id } = await params
+
+  const parsed = DeleteBody.safeParse(await req.json().catch(() => null))
+  if (!parsed.success) {
+    return NextResponse.json({ error: 'PIN manager wajib diisi' }, { status: 400 })
+  }
+  const check = await verifyManagerPin(ctx.workspaceId, parsed.data.pin)
+  if (!check.ok) return NextResponse.json({ error: check.reason }, { status: 401 })
 
   const c = await db
     .select({ totalPurchases: customers.totalPurchases })

@@ -16,6 +16,7 @@ export async function GET() {
       name: cashiers.name,
       role: cashiers.role,
       isActive: cashiers.isActive,
+      isOwnerCashier: cashiers.isOwnerCashier,
       outletId: cashiers.outletId,
       createdAt: cashiers.createdAt,
     })

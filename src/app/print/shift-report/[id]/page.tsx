@@ -1,15 +1,14 @@
 import { redirect } from 'next/navigation'
-import { and, eq, sql } from 'drizzle-orm'
+import { and, eq } from 'drizzle-orm'
 import { db } from '@/lib/db'
 import {
   cashiers,
   outlets,
   shiftSessions,
-  transactionPayments,
-  transactions,
   workspaces,
 } from '@/lib/db/schema'
 import { getCurrentContext } from '@/lib/session'
+import { getShiftPaymentSummary } from '@/lib/shifts/summary'
 import { AutoPrint } from '../../auto-print'
 
 export const dynamic = 'force-dynamic'
@@ -60,34 +59,10 @@ export default async function PrintShiftReportPage({
   const ws = (await db.select().from(workspaces).where(eq(workspaces.id, ctx.workspace.id)).limit(1))[0]
   const outlet = (await db.select().from(outlets).where(eq(outlets.id, r.s.outletId)).limit(1))[0]
 
-  const trxs = await db
-    .select({
-      id: transactions.id,
-      status: transactions.status,
-      total: transactions.total,
-    })
-    .from(transactions)
-    .where(eq(transactions.shiftId, id))
-
-  const completedIds = trxs.filter((t) => t.status === 'completed').map((t) => t.id)
-  let byMethod: Record<string, number> = {}
-  if (completedIds.length > 0) {
-    const pays = await db.execute<{ method: string; total: string }>(sql`
-      SELECT method, COALESCE(SUM(amount), 0)::text AS total
-      FROM mote_pos.transaction_payments
-      WHERE transaction_id IN ${completedIds}
-      GROUP BY method
-    `)
-    byMethod = Object.fromEntries(pays.rows.map((p) => [p.method, Number(p.total)]))
-  }
-  void transactionPayments
-
-  const total = trxs
-    .filter((t) => t.status === 'completed')
-    .reduce((s, t) => s + Number(t.total), 0)
-
+  const summary = await getShiftPaymentSummary(id, ctx.workspace.id)
+  const total = summary.total
   const opening = Number(r.s.openingBalance)
-  const expected = Number(r.s.expectedBalance ?? opening + (byMethod['cash'] ?? 0))
+  const expected = Number(r.s.expectedBalance ?? opening + summary.cashIn)
   const actual = Number(r.s.closingBalance ?? expected)
   const diff = Number(r.s.difference ?? actual - expected)
 
@@ -107,7 +82,7 @@ export default async function PrintShiftReportPage({
         <hr className="divider" />
         <div className="row">
           <span>Transaksi</span>
-          <span>{trxs.filter((t) => t.status === 'completed').length}</span>
+          <span>{summary.txCount}</span>
         </div>
         <div className="row bold lg">
           <span>Total</span>
@@ -115,24 +90,12 @@ export default async function PrintShiftReportPage({
         </div>
 
         <hr className="divider" />
-        <div className="row">
-          <span>CASH</span>
-          <span>{fmtRupiah(byMethod['cash'] ?? 0)}</span>
-        </div>
-        <div className="row">
-          <span>QRIS</span>
-          <span>{fmtRupiah(byMethod['qris'] ?? 0)}</span>
-        </div>
-        <div className="row">
-          <span>TRF</span>
-          <span>{fmtRupiah(byMethod['transfer'] ?? 0)}</span>
-        </div>
-        {(byMethod['debt'] ?? 0) > 0 && (
-          <div className="row">
-            <span>HUTANG</span>
-            <span>{fmtRupiah(byMethod['debt'] ?? 0)}</span>
+        {summary.breakdown.map((item) => (
+          <div className="row" key={item.method}>
+            <span>{item.label.toUpperCase()}</span>
+            <span>{fmtRupiah(item.amount)}</span>
           </div>
-        )}
+        ))}
 
         <hr className="divider" />
         <div className="row">

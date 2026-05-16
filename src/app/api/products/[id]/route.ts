@@ -8,7 +8,7 @@ import {
   modifierGroups,
   categories,
 } from '@/lib/db/schema'
-import { requireAuthCtx, isErrResponse } from '@/lib/api-helpers'
+import { requireUserCtx, isErrResponse } from '@/lib/api-helpers'
 
 type Ctx = { params: Promise<{ id: string }> }
 
@@ -27,7 +27,7 @@ const Body = z.object({
 })
 
 export async function PUT(req: Request, ctxArg: Ctx) {
-  const ctx = await requireAuthCtx()
+  const ctx = await requireUserCtx()
   if (isErrResponse(ctx)) return ctx
   const { id } = await ctxArg.params
   const parsed = Body.safeParse(await req.json().catch(() => null))
@@ -88,7 +88,7 @@ export async function PUT(req: Request, ctxArg: Ctx) {
 }
 
 export async function DELETE(_req: Request, ctxArg: Ctx) {
-  const ctx = await requireAuthCtx()
+  const ctx = await requireUserCtx()
   if (isErrResponse(ctx)) return ctx
   const { id } = await ctxArg.params
   await db

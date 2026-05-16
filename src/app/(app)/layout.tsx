@@ -1,44 +1,40 @@
 import { redirect } from 'next/navigation'
 import { headers } from 'next/headers'
-import { getCurrentContext } from '@/lib/session'
-import { getCashierSession } from '@/lib/cashier-auth'
+import { getAuthContext } from '@/lib/auth-context'
 import { AppShell } from '@/components/app-shell'
 import { CashierShell } from '@/components/cashier-shell'
 
 export const dynamic = 'force-dynamic'
 
-const OWNER_PREFIXES = [
+// Routes that ONLY owner can access. Cashier hitting these is redirected to /kasir.
+const OWNER_ONLY_PREFIXES = [
   '/dashboard',
   '/produk',
   '/kategori',
   '/modifier',
-  '/pelanggan',
-  '/pengaturan',
-  '/laporan',
-  '/transaksi',
-  '/hutang',
   '/kasir-list',
-  '/titipan-uang',
-  '/titipan-barang',
 ]
 
+// Pengaturan tabs reserved for owner. Cashier accessing /pengaturan without
+// `tab=outlet` is forced to that tab (handled inside the page itself), but the
+// route is still accessible.
+
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
-  const ctx = await getCurrentContext()
+  const ctx = await getAuthContext()
+  if (!ctx) redirect('/sign-in')
+
   const hdrs = await headers()
   const pathname = hdrs.get('x-pathname') ?? hdrs.get('x-invoke-path') ?? ''
 
-  if (!ctx) {
-    const cashier = await getCashierSession()
-    if (!cashier) redirect('/sign-in')
-    // Cashier-only paths: only /kasir/*; redirect away from owner pages.
-    if (OWNER_PREFIXES.some((p) => pathname.startsWith(p))) {
+  if (ctx.type === 'cashier') {
+    if (OWNER_ONLY_PREFIXES.some((p) => pathname === p || pathname.startsWith(p + '/'))) {
       redirect('/kasir')
     }
     return (
       <CashierShell
-        cashier={{ name: cashier.cashierName, role: cashier.cashierRole }}
-        workspace={{ name: cashier.workspaceName }}
-        outlet={{ name: cashier.outletName }}
+        cashier={{ name: ctx.cashierName, role: ctx.cashierRole }}
+        workspace={{ name: ctx.workspace.name, businessType: ctx.workspace.businessType }}
+        outlet={{ name: ctx.outlet.name }}
       >
         {children}
       </CashierShell>

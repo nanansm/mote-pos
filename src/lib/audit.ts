@@ -9,6 +9,8 @@ export type AuditAction =
   | 'discount_manual'
   | 'debt_pay'
   | 'shift_close_offline'
+  | 'shift_closed'
+  | 'shift_auto_closed'
   | 'pin_failed'
   | 'cashier_login'
   | 'cashier_login_failed'

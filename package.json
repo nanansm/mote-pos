@@ -16,6 +16,7 @@
     "reset:users": "tsx src/scripts/reset-users.ts",
     "backfill:login-codes": "tsx src/scripts/backfill-login-codes.ts",
     "invalidate:cashier-sessions": "tsx src/scripts/invalidate-cashier-sessions.ts",
+    "cleanup:shifts": "tsx src/scripts/cleanup-stuck-shifts.ts",
     "test:e2e": "playwright test",
     "test:e2e:cashier": "playwright test cashier-flow",
     "test:e2e:ui": "playwright test --ui",

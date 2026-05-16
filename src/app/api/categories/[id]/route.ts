@@ -3,7 +3,7 @@ import { z } from 'zod'
 import { and, eq } from 'drizzle-orm'
 import { db } from '@/lib/db'
 import { categories } from '@/lib/db/schema'
-import { requireAuthCtx, isErrResponse } from '@/lib/api-helpers'
+import { requireUserCtx, isErrResponse } from '@/lib/api-helpers'
 
 const Body = z.object({
   name: z.string().min(1).max(120).optional(),
@@ -14,7 +14,7 @@ const Body = z.object({
 type Ctx = { params: Promise<{ id: string }> }
 
 export async function PUT(req: Request, ctxArg: Ctx) {
-  const ctx = await requireAuthCtx()
+  const ctx = await requireUserCtx()
   if (isErrResponse(ctx)) return ctx
   const { id } = await ctxArg.params
   const parsed = Body.safeParse(await req.json().catch(() => null))
@@ -28,7 +28,7 @@ export async function PUT(req: Request, ctxArg: Ctx) {
 }
 
 export async function DELETE(_req: Request, ctxArg: Ctx) {
-  const ctx = await requireAuthCtx()
+  const ctx = await requireUserCtx()
   if (isErrResponse(ctx)) return ctx
   const { id } = await ctxArg.params
   await db

@@ -22,9 +22,25 @@ export async function PUT(req: Request, ctxArg: Ctx) {
   const { id } = await ctxArg.params
   const parsed = Body.safeParse(await req.json().catch(() => null))
   if (!parsed.success) return NextResponse.json({ error: 'invalid' }, { status: 400 })
+
+  const data = parsed.data
+  if (ctx.cashierId) {
+    const allowed: Partial<typeof data> = {}
+    if (data.printerIp !== undefined) allowed.printerIp = data.printerIp
+    if (data.printerPort !== undefined) allowed.printerPort = data.printerPort
+    if (Object.keys(allowed).length === 0) {
+      return NextResponse.json({ error: 'kasir hanya boleh ubah printer' }, { status: 403 })
+    }
+    await db
+      .update(outlets)
+      .set({ ...allowed, updatedAt: new Date() })
+      .where(and(eq(outlets.id, id), eq(outlets.workspaceId, ctx.workspaceId)))
+    return NextResponse.json({ ok: true })
+  }
+
   await db
     .update(outlets)
-    .set({ ...parsed.data, updatedAt: new Date() })
+    .set({ ...data, updatedAt: new Date() })
     .where(and(eq(outlets.id, id), eq(outlets.workspaceId, ctx.workspaceId)))
   return NextResponse.json({ ok: true })
 }

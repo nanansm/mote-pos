@@ -15,6 +15,7 @@ import {
 } from 'lucide-react'
 import { db } from '@/lib/db'
 import {
+  cashiers,
   transactions,
   products,
   shiftSessions,
@@ -50,7 +51,7 @@ export default async function DashboardPage() {
   const yesterdayStart = new Date(start)
   yesterdayStart.setDate(yesterdayStart.getDate() - 1)
 
-  const [todayRow, yesterdayRow, productCountRow, openShiftRow, recentTrxRows] =
+  const [todayRow, yesterdayRow, productCountRow, openShiftRow, recentTrxRows, myActiveShiftRow] =
     await Promise.all([
       db
         .select({
@@ -108,6 +109,22 @@ export default async function DashboardPage() {
         .where(eq(transactions.workspaceId, ctx.workspace.id))
         .orderBy(desc(transactions.trxDate))
         .limit(5),
+      // Owner's own active shift (via owner-cashier record) — drives the CTA
+      // so the button reflects the logged-in user's shift state, not any
+      // cashier in the workspace.
+      db
+        .select({ id: shiftSessions.id })
+        .from(shiftSessions)
+        .innerJoin(cashiers, eq(cashiers.id, shiftSessions.cashierId))
+        .where(
+          and(
+            eq(shiftSessions.workspaceId, ctx.workspace.id),
+            eq(shiftSessions.status, 'open'),
+            eq(cashiers.isOwnerCashier, true),
+          ),
+        )
+        .orderBy(desc(shiftSessions.openedAt))
+        .limit(1),
     ])
 
   const salesTotal = Number(todayRow[0]?.total ?? 0)
@@ -116,6 +133,7 @@ export default async function DashboardPage() {
   const avgPerTrx = trxCount > 0 ? salesTotal / trxCount : 0
   const productCount = productCountRow[0]?.count ?? 0
   const openShifts = openShiftRow[0]?.count ?? 0
+  const myActiveShift = myActiveShiftRow[0] ?? null
 
   const yTotal = Number(yesterdayRow[0]?.total ?? 0)
   const yCount = yesterdayRow[0]?.count ?? 0
@@ -155,7 +173,10 @@ export default async function DashboardPage() {
     {
       label: 'Shift Aktif',
       value: String(openShifts),
-      sub: openShifts > 0 ? 'Sedang berlangsung' : 'Belum ada shift terbuka',
+      sub:
+        openShifts > 0
+          ? `${openShifts} kasir sedang aktif`
+          : 'Belum ada shift terbuka',
       tone: 'neutral' as const,
       Icon: PlayCircle,
     },
@@ -175,9 +196,9 @@ export default async function DashboardPage() {
             Ringkasan toko kamu hari ini.
           </p>
         </div>
-        <Link href={openShifts > 0 ? '/kasir' : '/kasir/buka-shift'}>
+        <Link href={myActiveShift ? '/kasir' : '/kasir/buka-shift'}>
           <Button size="lg" className="gap-2 h-12 px-6 text-base font-semibold shadow-lg shadow-primary/25 w-full sm:w-auto">
-            {openShifts > 0 ? 'Lanjut Kasir' : 'Mulai Transaksi'}
+            {myActiveShift ? 'Lanjut Kasir' : 'Mulai Transaksi'}
             <ArrowRight className="size-4" />
           </Button>
         </Link>

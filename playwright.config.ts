@@ -13,8 +13,9 @@ export default defineConfig({
   ],
   use: {
     baseURL: 'http://localhost:3030',
-    screenshot: 'only-on-failure',
+    screenshot: 'off',
     trace: 'retain-on-failure',
+    video: 'off',
   },
   webServer: {
     command: 'npm run dev',

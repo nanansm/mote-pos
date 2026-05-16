@@ -9,7 +9,13 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { CurrencyInput } from '@/components/ui/currency-input'
 
-type Cashier = { id: string; name: string; role: 'cashier' | 'manager'; isActive: boolean }
+type Cashier = {
+  id: string
+  name: string
+  role: 'cashier' | 'manager'
+  isActive: boolean
+  isOwnerCashier?: boolean
+}
 
 export default function BukaShiftPage() {
   const router = useRouter()
@@ -112,7 +118,13 @@ export default function BukaShiftPage() {
                       <div className="flex-1 min-w-0">
                         <div className="font-semibold text-sm truncate">{c.name}</div>
                         <div className="text-[10px] uppercase tracking-wider text-muted-foreground">
-                          {c.role}
+                          {c.isOwnerCashier ? (
+                            <span className="inline-flex items-center rounded-md bg-brand-500/10 text-brand-700 dark:text-brand-300 px-1.5 py-0.5 font-semibold tracking-wider">
+                              OWNER
+                            </span>
+                          ) : (
+                            c.role
+                          )}
                         </div>
                       </div>
                       {active && (

@@ -36,7 +36,7 @@ export async function POST(req: Request) {
   if (!ok) return NextResponse.json({ error: 'PIN salah' }, { status: 401 })
 
   const existing = await db
-    .select({ id: shiftSessions.id })
+    .select({ id: shiftSessions.id, openedAt: shiftSessions.openedAt })
     .from(shiftSessions)
     .where(
       and(
@@ -46,8 +46,19 @@ export async function POST(req: Request) {
     )
     .limit(1)
   if (existing[0]) {
+    const openedAt = new Date(existing[0].openedAt)
+    const hoursOpen = (Date.now() - openedAt.getTime()) / (1000 * 60 * 60)
     return NextResponse.json(
-      { error: 'kasir ini masih punya shift terbuka', shiftId: existing[0].id },
+      {
+        error: 'kasir ini masih punya shift terbuka',
+        shiftId: existing[0].id,
+        staleShift: {
+          id: existing[0].id,
+          openedAt: openedAt.toISOString(),
+          hoursOpen: Math.floor(hoursOpen),
+          isStale: hoursOpen > 24,
+        },
+      },
       { status: 409 },
     )
   }

@@ -19,6 +19,7 @@ import { Textarea } from '@/components/ui/textarea'
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
@@ -44,6 +45,9 @@ export function PelangganClient() {
   const [editing, setEditing] = useState<Customer | null>(null)
   const [form, setForm] = useState({ ...empty })
   const [saving, setSaving] = useState(false)
+  const [deleteTarget, setDeleteTarget] = useState<Customer | null>(null)
+  const [deletePin, setDeletePin] = useState('')
+  const [deleting, setDeleting] = useState(false)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -95,15 +99,32 @@ export function PelangganClient() {
     load()
   }
 
-  const remove = async (c: Customer) => {
-    if (!confirm(`Hapus pelanggan "${c.name}"?`)) return
-    const res = await fetch(`/api/customers/${c.id}`, { method: 'DELETE' })
+  const openDelete = (c: Customer) => {
+    setDeleteTarget(c)
+    setDeletePin('')
+  }
+
+  const confirmDelete = async () => {
+    if (!deleteTarget) return
+    if (!/^\d{6}$/.test(deletePin)) {
+      toast.error('PIN manager harus 6 digit angka')
+      return
+    }
+    setDeleting(true)
+    const res = await fetch(`/api/customers/${deleteTarget.id}`, {
+      method: 'DELETE',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ pin: deletePin }),
+    })
+    setDeleting(false)
     if (!res.ok) {
       const j = await res.json().catch(() => ({}))
       toast.error(j.error ?? 'Gagal hapus')
       return
     }
     toast.success('Pelanggan dihapus')
+    setDeleteTarget(null)
+    setDeletePin('')
     load()
   }
 
@@ -197,7 +218,7 @@ export function PelangganClient() {
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => remove(c)}
+                          onClick={() => openDelete(c)}
                           aria-label="Hapus"
                           disabled={c.totalPurchases > 0}
                         >
@@ -243,7 +264,7 @@ export function PelangganClient() {
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => remove(c)}
+                        onClick={() => openDelete(c)}
                         aria-label="Hapus"
                         disabled={c.totalPurchases > 0}
                       >
@@ -257,6 +278,62 @@ export function PelangganClient() {
           </>
         )}
       </div>
+
+      <Dialog
+        open={!!deleteTarget}
+        onOpenChange={(o) => {
+          if (!o) {
+            setDeleteTarget(null)
+            setDeletePin('')
+          }
+        }}
+      >
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Hapus Pelanggan</DialogTitle>
+            <DialogDescription>
+              Hapus <span className="font-semibold">{deleteTarget?.name}</span>? Aksi
+              ini perlu PIN manager.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="space-y-1.5">
+              <Label htmlFor="del-pin">PIN Manager (6 digit)</Label>
+              <Input
+                id="del-pin"
+                type="password"
+                inputMode="numeric"
+                maxLength={6}
+                value={deletePin}
+                onChange={(e) => setDeletePin(e.target.value.replace(/\D/g, ''))}
+                className="text-center text-xl tracking-[0.5em] h-12"
+                placeholder="••••••"
+              />
+            </div>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setDeleteTarget(null)
+                  setDeletePin('')
+                }}
+                className="flex-1"
+                disabled={deleting}
+              >
+                Batal
+              </Button>
+              <Button
+                onClick={confirmDelete}
+                disabled={deleting || deletePin.length < 6}
+                className="flex-1 gap-2 bg-destructive hover:bg-destructive/90 text-destructive-foreground"
+              >
+                {deleting && <Loader2 className="size-4 animate-spin" />}
+                Hapus
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-w-md">

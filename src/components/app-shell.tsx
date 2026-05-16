@@ -82,6 +82,8 @@ export function AppShell({
   const isActive = (href: string) =>
     pathname === href || pathname.startsWith(href + '/')
 
+  const isFullBleed = pathname === '/kasir'
+
   return (
     <div className="min-h-screen flex bg-muted/30">
       {/* Sidebar */}
@@ -227,7 +229,15 @@ export function AppShell({
             </Link>
           </div>
         </header>
-        <main className="flex-1 p-4 sm:p-6 lg:p-8">{children}</main>
+        <main
+          className={
+            isFullBleed
+              ? 'flex-1 min-h-0 min-w-0 overflow-hidden'
+              : 'flex-1 min-h-0 min-w-0 p-4 sm:p-6 lg:p-8'
+          }
+        >
+          {children}
+        </main>
       </div>
     </div>
   )

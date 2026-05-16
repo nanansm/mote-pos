@@ -1,8 +1,9 @@
 import { NextResponse } from 'next/server'
-import { and, eq, sql } from 'drizzle-orm'
+import { and, eq } from 'drizzle-orm'
 import { db } from '@/lib/db'
-import { shiftSessions, transactions, cashiers } from '@/lib/db/schema'
+import { shiftSessions, cashiers } from '@/lib/db/schema'
 import { requireAuthCtx, isErrResponse } from '@/lib/api-helpers'
+import { getShiftPaymentSummary } from '@/lib/shifts/summary'
 
 type Ctx = { params: Promise<{ id: string }> }
 
@@ -21,6 +22,8 @@ export async function GET(_req: Request, ctxArg: Ctx) {
       expectedBalance: shiftSessions.expectedBalance,
       difference: shiftSessions.difference,
       status: shiftSessions.status,
+      closedReason: shiftSessions.closedReason,
+      autoClosed: shiftSessions.autoClosed,
       cashierId: cashiers.id,
       cashierName: cashiers.name,
     })
@@ -35,40 +38,22 @@ export async function GET(_req: Request, ctxArg: Ctx) {
     .limit(1)
   if (!shift[0]) return NextResponse.json({ error: 'not found' }, { status: 404 })
 
-  const sums = await db
-    .select({
-      method: transactions.paymentMethod,
-      total: sql<string>`COALESCE(SUM(${transactions.total}), 0)`,
-      count: sql<number>`COUNT(*)::int`,
-    })
-    .from(transactions)
-    .where(
-      and(eq(transactions.shiftId, id), eq(transactions.status, 'completed')),
-    )
-    .groupBy(transactions.paymentMethod)
+  const summary = await getShiftPaymentSummary(id, ctx.workspaceId)
+  const expected = Number(shift[0].openingBalance ?? 0) + summary.cashIn
 
-  const byMethod: Record<string, { total: number; count: number }> = {
-    cash: { total: 0, count: 0 },
-    qris: { total: 0, count: 0 },
-    transfer: { total: 0, count: 0 },
+  const byMethod: Record<string, { total: number; count: number }> = {}
+  for (const item of summary.breakdown) {
+    byMethod[item.method] = { total: item.amount, count: item.count }
   }
-  let totalAll = 0
-  let totalCount = 0
-  for (const r of sums) {
-    const v = { total: Number(r.total), count: r.count }
-    byMethod[r.method] = v
-    totalAll += v.total
-    totalCount += v.count
-  }
-  const expected =
-    Number(shift[0].openingBalance ?? 0) + (byMethod.cash?.total ?? 0)
 
   return NextResponse.json({
     shift: shift[0],
     summary: {
+      breakdown: summary.breakdown,
       byMethod,
-      totalAll,
-      totalCount,
+      totalAll: summary.total,
+      totalCount: summary.txCount,
+      cashIn: summary.cashIn,
       expectedBalance: expected,
     },
   })

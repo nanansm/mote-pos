@@ -735,9 +735,9 @@ export function KasirClient({
   }
 
   return (
-    <div className="-m-4 sm:-m-6 lg:-m-8">
-      <div className="flex h-[calc(100vh-64px)] lg:h-screen bg-background">
-        <div className="flex-1 flex flex-col border-r border-border">
+    <div className="h-full">
+      <div className="flex flex-col md:flex-row h-[calc(100dvh-56px)] lg:h-screen bg-background">
+        <div className="flex-1 flex flex-col min-w-0 min-h-0 md:border-r border-border">
           <div className="border-b border-border bg-card p-3 flex gap-2 items-center">
             <Link href="/dashboard" className="rounded-lg p-2 hover:bg-muted" aria-label="Kembali">
               <ArrowLeft className="size-4" />
@@ -862,7 +862,7 @@ export function KasirClient({
           </div>
         </div>
 
-        <aside className="w-[320px] lg:w-[380px] xl:w-[420px] flex flex-col bg-card">
+        <aside className="flex w-full md:w-[280px] lg:w-[360px] xl:w-[420px] md:shrink-0 flex-col bg-card border-t md:border-t-0 border-border max-h-[45vh] md:max-h-none">
           <div className="border-b border-border px-4 py-3 flex items-center justify-between gap-2">
             <div className="flex items-center gap-2 min-w-0">
               <ShoppingBag className="size-4 text-primary shrink-0" />
@@ -882,7 +882,7 @@ export function KasirClient({
               )}
             </button>
           </div>
-          <div className="border-b border-border px-4 py-2 flex items-center justify-between text-xs">
+          <div className="border-b border-border px-4 py-2 flex items-center justify-between gap-3 text-xs">
             <div className="min-w-0">
               <span className="font-semibold">{cashierName || 'Kasir'}</span>
               {openedAt && (
@@ -891,8 +891,15 @@ export function KasirClient({
                 </span>
               )}
             </div>
-            <Link href="/kasir/tutup-shift" className="font-semibold text-primary hover:underline shrink-0">
-              Tutup Shift
+            <Link href="/kasir/tutup-shift" className="shrink-0">
+              <Button
+                size="sm"
+                variant="outline"
+                className="gap-1.5 border-destructive/30 text-destructive hover:bg-destructive/10 hover:text-destructive"
+              >
+                <Lock className="size-3.5" />
+                Tutup Shift
+              </Button>
             </Link>
           </div>
 

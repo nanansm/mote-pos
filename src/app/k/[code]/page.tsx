@@ -91,6 +91,7 @@ export default async function CashierLoginPage({
       id: cashiers.id,
       name: cashiers.name,
       role: cashiers.role,
+      isOwnerCashier: cashiers.isOwnerCashier,
       outletId: cashiers.outletId,
     })
     .from(cashiers)
@@ -109,6 +110,7 @@ export default async function CashierLoginPage({
         id: c.id,
         name: c.name,
         role: c.role,
+        isOwnerCashier: c.isOwnerCashier,
         outletId: c.outletId,
       }))}
       loginCode={code}

@@ -80,6 +80,7 @@ export async function POST(req: Request) {
       name: cashier.name,
       pinHash,
       role: 'manager',
+      isOwnerCashier: true,
     })
     await tx.update(userTable).set({ workspaceId: wsId }).where(eq(userTable.id, sess.user.id))
   })

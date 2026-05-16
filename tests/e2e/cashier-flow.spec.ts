@@ -78,17 +78,22 @@ test.describe('Cashier auth flow', () => {
     const cookies = await context.cookies()
     expect(cookies.find((c) => c.name === 'cashier_session_token')).toBeTruthy()
 
-    // CashierShell sidebar shows Kasir / Transaksi Shift / Tutup Shift / Logout Kasir
-    await expect(page.getByRole('link', { name: 'Kasir', exact: true })).toBeVisible()
-    await expect(page.getByRole('link', { name: 'Transaksi Shift' })).toBeVisible()
-    await expect(page.getByRole('link', { name: 'Tutup Shift' })).toBeVisible()
+    // CashierShell sidebar: cashier sees core POS + customer + reports menus
+    await expect(page.locator('aside').getByRole('link', { name: 'Kasir', exact: true })).toBeVisible()
+    await expect(page.locator('aside').getByRole('link', { name: 'Transaksi', exact: true })).toBeVisible()
+    await expect(page.locator('aside').getByRole('link', { name: 'Pelanggan', exact: true })).toBeVisible()
+    await expect(page.locator('aside').getByRole('link', { name: 'Hutang', exact: true })).toBeVisible()
+    await expect(page.locator('aside').getByRole('link', { name: 'Titipan Uang', exact: true })).toBeVisible()
+    await expect(page.locator('aside').getByRole('link', { name: 'Titipan Barang', exact: true })).toBeVisible()
+    await expect(page.locator('aside').getByRole('link', { name: 'Pengaturan', exact: true })).toBeVisible()
     await expect(page.getByRole('button', { name: /Logout Kasir/i })).toBeVisible()
 
-    // Owner-only nav must NOT be present
-    await expect(page.getByRole('link', { name: 'Dashboard' })).toHaveCount(0)
-    await expect(page.getByRole('link', { name: 'Produk', exact: true })).toHaveCount(0)
-    await expect(page.getByRole('link', { name: 'Pelanggan' })).toHaveCount(0)
-    await expect(page.getByRole('link', { name: 'Pengaturan' })).toHaveCount(0)
+    // Owner-only nav must NOT be present in cashier sidebar
+    await expect(page.locator('aside').getByRole('link', { name: 'Dashboard', exact: true })).toHaveCount(0)
+    await expect(page.locator('aside').getByRole('link', { name: 'Produk', exact: true })).toHaveCount(0)
+    await expect(page.locator('aside').getByRole('link', { name: 'Kategori', exact: true })).toHaveCount(0)
+    await expect(page.locator('aside').getByRole('link', { name: 'Modifier', exact: true })).toHaveCount(0)
+    await expect(page.locator('aside').getByRole('link', { name: 'Kasir & Shift', exact: true })).toHaveCount(0)
   })
 
   test('cashier session blocks owner-only routes', async ({ page }) => {

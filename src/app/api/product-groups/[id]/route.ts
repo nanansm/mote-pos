@@ -8,7 +8,7 @@ import {
   products,
   transactionItems,
 } from '@/lib/db/schema'
-import { requireAuthCtx, isErrResponse } from '@/lib/api-helpers'
+import { requireAuthCtx, requireUserCtx, isErrResponse } from '@/lib/api-helpers'
 import { newId } from '@/lib/ids'
 
 export const runtime = 'nodejs'
@@ -66,7 +66,7 @@ export async function PUT(
   req: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const ctx = await requireAuthCtx()
+  const ctx = await requireUserCtx()
   if (isErrResponse(ctx)) return ctx
   const { id } = await params
   const parsed = Body.safeParse(await req.json().catch(() => null))
@@ -161,7 +161,7 @@ export async function DELETE(
   _req: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const ctx = await requireAuthCtx()
+  const ctx = await requireUserCtx()
   if (isErrResponse(ctx)) return ctx
   const { id } = await params
 
