@@ -48,7 +48,7 @@ export function CashierShell({
       toast.error('Gagal logout')
       return
     }
-    router.push('/login-kasir')
+    router.push('/')
     router.refresh()
   }
 

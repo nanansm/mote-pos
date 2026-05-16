@@ -11,15 +11,21 @@ import {
   workspaces,
 } from '@/lib/db/schema'
 import { getCurrentContext } from '@/lib/session'
+import { getCashierSession } from '@/lib/cashier-auth'
 import { KasirClient } from './kasir-client'
 
 export const dynamic = 'force-dynamic'
 
 export default async function KasirPage() {
   const ctx = await getCurrentContext()
-  if (!ctx?.workspace) redirect('/sign-in')
-
-  const wsId = ctx.workspace.id
+  let wsId: string
+  if (ctx?.workspace) {
+    wsId = ctx.workspace.id
+  } else {
+    const cashier = await getCashierSession()
+    if (!cashier) redirect('/sign-in')
+    wsId = cashier.workspaceId
+  }
 
   const cats = await db
     .select()

@@ -3,12 +3,20 @@
 import { useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { toast } from 'sonner'
+import { Copy, Lock, RefreshCw } from 'lucide-react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Button } from '@/components/ui/button'
 import { PasswordInput } from '@/components/ui/password-input'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import {
   Select,
   SelectContent,
@@ -23,13 +31,15 @@ import { PaymentMethodsClient } from './payment-methods-client'
 
 type Props = {
   defaultTab: string
-  user: { email: string }
+  user: { email: string; role: 'user' | 'owner' }
+  isWorkspaceOwner: boolean
   workspace: {
     id: string
     name: string
     address: string
     phone: string
     businessType: 'resto' | 'retail' | 'jasa'
+    loginCode: string | null
   }
   outlet: {
     id: string
@@ -41,7 +51,7 @@ type Props = {
   }
 }
 
-export function SettingsClient({ defaultTab, user, workspace, outlet }: Props) {
+export function SettingsClient({ defaultTab, user, isWorkspaceOwner, workspace, outlet }: Props) {
   const router = useRouter()
   const sp = useSearchParams()
   const [tab, setTab] = useState(defaultTab)
@@ -49,6 +59,40 @@ export function SettingsClient({ defaultTab, user, workspace, outlet }: Props) {
   const [ou, setOu] = useState(outlet)
   const [pwd, setPwd] = useState({ current: '', next: '', confirm: '' })
   const [saving, setSaving] = useState(false)
+  const [loginCode, setLoginCode] = useState(workspace.loginCode)
+  const [regenOpen, setRegenOpen] = useState(false)
+  const [regenLoading, setRegenLoading] = useState(false)
+
+  const codeLink =
+    typeof window !== 'undefined' && loginCode
+      ? `${window.location.origin}/k/${loginCode}`
+      : loginCode
+        ? `/k/${loginCode}`
+        : ''
+
+  const copyText = async (text: string, msg: string) => {
+    try {
+      await navigator.clipboard.writeText(text)
+      toast.success(msg)
+    } catch {
+      toast.error('Gagal menyalin')
+    }
+  }
+
+  const regenerate = async () => {
+    setRegenLoading(true)
+    const res = await fetch('/api/workspace/login-code', { method: 'POST' })
+    setRegenLoading(false)
+    if (!res.ok) {
+      const j = await res.json().catch(() => ({}))
+      toast.error(j.error ?? 'Gagal regenerate code')
+      return
+    }
+    const data = (await res.json()) as { login_code: string }
+    setLoginCode(data.login_code)
+    toast.success('Login code berhasil di-regenerate')
+    setRegenOpen(false)
+  }
 
   useEffect(() => {
     const urlTab = sp.get('tab')
@@ -182,7 +226,69 @@ export function SettingsClient({ defaultTab, user, workspace, outlet }: Props) {
           </div>
         </TabsContent>
 
-        <TabsContent value="outlet">
+        <TabsContent value="outlet" className="space-y-6">
+          {isWorkspaceOwner && (
+            <div className="rounded-2xl border-2 border-brand-500/30 bg-brand-500/5 p-6 space-y-4 max-w-2xl">
+              <div className="flex items-center gap-2">
+                <Lock className="size-5 text-brand-700" />
+                <h3 className="text-lg font-semibold">Login Kasir</h3>
+              </div>
+              <p className="text-sm text-muted-foreground -mt-2">
+                Kasir akses via link unik di bawah. Bagikan ke Mini PC kasir, jangan ke publik.
+              </p>
+
+              <div className="space-y-1.5">
+                <Label className="text-muted-foreground">Kode Login Kasir</Label>
+                <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+                  <code className="flex-1 px-4 py-2 bg-background border border-border rounded-lg text-lg font-mono tracking-wider min-h-[44px] flex items-center">
+                    {loginCode ?? '—'}
+                  </code>
+                  <Button
+                    variant="outline"
+                    onClick={() =>
+                      loginCode &&
+                      copyText(loginCode, 'Kode disalin')
+                    }
+                    disabled={!loginCode}
+                    className="gap-2 min-h-[44px]"
+                  >
+                    <Copy className="size-4" /> Copy Code
+                  </Button>
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className="text-muted-foreground">Link untuk Mini PC Kasir</Label>
+                <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+                  <code className="flex-1 px-4 py-2 bg-background border border-border rounded-lg text-xs sm:text-sm break-all min-h-[44px] flex items-center">
+                    {codeLink || '—'}
+                  </code>
+                  <Button
+                    variant="outline"
+                    onClick={() => codeLink && copyText(codeLink, 'Link disalin')}
+                    disabled={!codeLink}
+                    className="gap-2 min-h-[44px]"
+                  >
+                    <Copy className="size-4" /> Copy Link
+                  </Button>
+                </div>
+              </div>
+
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 pt-2 border-t border-brand-500/20">
+                <p className="text-xs text-muted-foreground">
+                  Regenerate akan invalidate link lama &amp; mengeluarkan semua kasir.
+                </p>
+                <Button
+                  variant="outline"
+                  onClick={() => setRegenOpen(true)}
+                  className="gap-2 min-h-[44px] hover:bg-destructive/10 hover:text-destructive hover:border-destructive/30"
+                >
+                  <RefreshCw className="size-4" /> Regenerate
+                </Button>
+              </div>
+            </div>
+          )}
+
           <div className="rounded-2xl border border-border bg-card p-6 space-y-4 max-w-2xl">
             <div className="space-y-1.5">
               <Label>Nama Outlet</Label>
@@ -299,6 +405,37 @@ export function SettingsClient({ defaultTab, user, workspace, outlet }: Props) {
           <PaymentMethodsClient />
         </TabsContent>
       </Tabs>
+
+      <Dialog open={regenOpen} onOpenChange={setRegenOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Regenerate Login Code?</DialogTitle>
+            <DialogDescription>
+              Link lama akan langsung invalid. Semua kasir yang sedang login akan dikeluarkan dan harus login ulang dengan link baru.
+              <br />
+              <br />
+              Pastikan kamu sudah siap memberitahu semua kasir dan update bookmark di Mini PC kasir.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex gap-2 pt-2">
+            <Button
+              variant="outline"
+              onClick={() => setRegenOpen(false)}
+              disabled={regenLoading}
+              className="flex-1"
+            >
+              Batal
+            </Button>
+            <Button
+              onClick={regenerate}
+              disabled={regenLoading}
+              className="flex-1 bg-destructive hover:bg-destructive/90 text-destructive-foreground"
+            >
+              {regenLoading ? 'Memproses…' : 'Ya, Regenerate'}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

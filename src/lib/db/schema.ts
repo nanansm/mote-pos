@@ -127,6 +127,7 @@ export const workspaces = mp.table('workspaces', {
   sheetsLastSyncAt: timestamp('sheets_last_sync_at', { withTimezone: true }),
   sheetsLastSyncStatus: text('sheets_last_sync_status'),
   sheetsLastSyncError: text('sheets_last_sync_error'),
+  loginCode: text('login_code'),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 })

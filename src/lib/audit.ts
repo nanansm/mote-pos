@@ -10,6 +10,10 @@ export type AuditAction =
   | 'debt_pay'
   | 'shift_close_offline'
   | 'pin_failed'
+  | 'cashier_login'
+  | 'cashier_login_failed'
+  | 'rate_limit_exceeded'
+  | 'workspace_code_regenerated'
 
 export type AuditOptions = {
   workspaceId: string

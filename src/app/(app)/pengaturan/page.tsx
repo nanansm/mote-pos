@@ -25,16 +25,20 @@ export default async function PengaturanPage({
   const tabRaw = Array.isArray(sp.tab) ? sp.tab[0] : sp.tab
   const defaultTab = tabRaw && ALLOWED_TABS.has(tabRaw) ? tabRaw : 'profile'
 
+  const isWorkspaceOwner = ctx.workspace.ownerId === ctx.user.id
+
   return (
     <SettingsClient
       defaultTab={defaultTab}
-      user={{ email: ctx.user.email }}
+      user={{ email: ctx.user.email, role: ctx.user.role }}
+      isWorkspaceOwner={isWorkspaceOwner}
       workspace={{
         id: ctx.workspace.id,
         name: ctx.workspace.name,
         address: ctx.workspace.address ?? '',
         phone: ctx.workspace.phone ?? '',
         businessType: ctx.workspace.businessType,
+        loginCode: ctx.workspace.loginCode ?? null,
       }}
       outlet={{
         id: ctx.outlet.id,

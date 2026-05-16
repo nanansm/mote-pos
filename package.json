@@ -14,9 +14,13 @@
     "db:studio": "drizzle-kit studio",
     "seed:owner": "tsx src/scripts/seed-owner.ts",
     "reset:users": "tsx src/scripts/reset-users.ts",
+    "backfill:login-codes": "tsx src/scripts/backfill-login-codes.ts",
+    "invalidate:cashier-sessions": "tsx src/scripts/invalidate-cashier-sessions.ts",
     "test:e2e": "playwright test",
+    "test:e2e:cashier": "playwright test cashier-flow",
     "test:e2e:ui": "playwright test --ui",
-    "test:e2e:report": "playwright show-report"
+    "test:e2e:report": "playwright show-report",
+    "test:e2e:summary": "tsx src/scripts/generate-test-report.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.4.1",
