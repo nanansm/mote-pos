@@ -1,7 +1,7 @@
 function requireEnv(key: string): string {
   const v = process.env[key]
   if (!v && process.env.NODE_ENV === 'production') {
-    throw new Error(`[env] ${key} is required in production`)
+    console.error(`[env] WARNING: ${key} is missing in production`)
   }
   return v ?? ''
 }
