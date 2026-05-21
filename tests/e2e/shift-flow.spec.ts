@@ -2,6 +2,7 @@ import { test, expect, type APIRequestContext, type Page } from '@playwright/tes
 import fs from 'node:fs'
 import path from 'node:path'
 import type { CashierFixture } from './global-setup'
+import { clearLoginRateLimit } from './helpers'
 
 const BASE = 'http://localhost:3030'
 const OWNER_EMAIL = 'smnanan@gmail.com'
@@ -36,7 +37,12 @@ async function openShiftViaApi(
     headers: { 'content-type': 'application/json' },
   })
   if (!res.ok()) {
-    const body = await res.json().catch(() => ({}))
+    const body = (await res.json().catch(() => ({}))) as { shiftId?: string }
+    // 409 — already open — the body carries the existing shiftId. Reuse it
+    // so callers can proceed with the existing shift instead of throwing.
+    if (res.status() === 409 && body.shiftId) {
+      return body.shiftId
+    }
     throw new Error(
       `open shift failed: ${res.status()} ${JSON.stringify(body)}`,
     )
@@ -78,6 +84,10 @@ test.describe('Shift flow — bug fixes', () => {
       !fixture.available,
       `cashier fixture unavailable: ${fixture.reason ?? 'unknown'}`,
     )
+  })
+
+  test.beforeEach(async () => {
+    await clearLoginRateLimit()
   })
 
   test('close shift API is idempotent — second call returns alreadyClosed=true', async ({
@@ -171,8 +181,11 @@ test.describe('Shift flow — bug fixes', () => {
       shiftId = await openShiftViaApi(request, fixture.cashierId!, fixture.pin!, 0)
     } catch {
       const me = await request.get(`${BASE}/api/cashier/me`)
-      const meBody = (await me.json()) as { shiftId?: string }
-      shiftId = meBody.shiftId ?? ''
+      const meBody = (await me.json()) as {
+        shiftId?: string
+        session?: { shiftId?: string | null }
+      }
+      shiftId = meBody.session?.shiftId ?? meBody.shiftId ?? ''
     }
     expect(shiftId).toBeTruthy()
 
@@ -218,8 +231,11 @@ test.describe('Shift flow — bug fixes', () => {
       shiftId = await openShiftViaApi(request, fixture.cashierId!, fixture.pin!, 0)
     } catch {
       const me = await request.get(`${BASE}/api/cashier/me`)
-      const meBody = (await me.json()) as { shiftId?: string }
-      shiftId = meBody.shiftId ?? ''
+      const meBody = (await me.json()) as {
+        shiftId?: string
+        session?: { shiftId?: string | null }
+      }
+      shiftId = meBody.session?.shiftId ?? meBody.shiftId ?? ''
     }
     expect(shiftId).toBeTruthy()
 
@@ -256,8 +272,11 @@ test.describe('Shift flow — bug fixes', () => {
       shiftId = await openShiftViaApi(request, fixture.cashierId!, fixture.pin!, 0)
     } catch {
       const me = await request.get(`${BASE}/api/cashier/me`)
-      const meBody = (await me.json()) as { shiftId?: string }
-      shiftId = meBody.shiftId ?? ''
+      const meBody = (await me.json()) as {
+        shiftId?: string
+        session?: { shiftId?: string | null }
+      }
+      shiftId = meBody.session?.shiftId ?? meBody.shiftId ?? ''
     }
     expect(shiftId).toBeTruthy()
 

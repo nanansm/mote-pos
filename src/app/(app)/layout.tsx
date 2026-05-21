@@ -33,7 +33,11 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     return (
       <CashierShell
         cashier={{ name: ctx.cashierName, role: ctx.cashierRole }}
-        workspace={{ name: ctx.workspace.name, businessType: ctx.workspace.businessType }}
+        workspace={{
+          id: ctx.workspace.id,
+          name: ctx.workspace.name,
+          businessType: ctx.workspace.businessType,
+        }}
         outlet={{ name: ctx.outlet.name }}
       >
         {children}

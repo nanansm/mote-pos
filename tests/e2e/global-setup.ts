@@ -3,6 +3,7 @@ import fs from 'node:fs'
 import { config as loadEnv } from 'dotenv'
 import { Client } from 'pg'
 import bcrypt from 'bcryptjs'
+import { clearLoginRateLimit } from './helpers'
 
 // Load .env.local synchronously BEFORE we connect to Postgres.
 loadEnv({ path: path.resolve(process.cwd(), '.env.local'), override: true })
@@ -27,6 +28,8 @@ const fixturePath = path.resolve(process.cwd(), 'tests/e2e/.fixtures.json')
 
 export default async function globalSetup() {
   let fixture: CashierFixture = { available: false, reason: 'unknown' }
+
+  await clearLoginRateLimit()
 
   if (!process.env.DATABASE_URL) {
     fixture = { available: false, reason: 'DATABASE_URL not set' }

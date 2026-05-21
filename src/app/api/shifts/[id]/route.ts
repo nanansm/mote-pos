@@ -36,7 +36,11 @@ export async function GET(_req: Request, ctxArg: Ctx) {
       ),
     )
     .limit(1)
-  if (!shift[0]) return NextResponse.json({ error: 'not found' }, { status: 404 })
+  if (!shift[0])
+    return NextResponse.json(
+      { error: 'not found' },
+      { status: 404, headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0' } },
+    )
 
   const summary = await getShiftPaymentSummary(id, ctx.workspaceId)
   const expected = Number(shift[0].openingBalance ?? 0) + summary.cashIn
@@ -46,15 +50,18 @@ export async function GET(_req: Request, ctxArg: Ctx) {
     byMethod[item.method] = { total: item.amount, count: item.count }
   }
 
-  return NextResponse.json({
-    shift: shift[0],
-    summary: {
-      breakdown: summary.breakdown,
-      byMethod,
-      totalAll: summary.total,
-      totalCount: summary.txCount,
-      cashIn: summary.cashIn,
-      expectedBalance: expected,
+  return NextResponse.json(
+    {
+      shift: shift[0],
+      summary: {
+        breakdown: summary.breakdown,
+        byMethod,
+        totalAll: summary.total,
+        totalCount: summary.txCount,
+        cashIn: summary.cashIn,
+        expectedBalance: expected,
+      },
     },
-  })
+    { headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0' } },
+  )
 }

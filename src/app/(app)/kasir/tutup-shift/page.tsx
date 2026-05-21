@@ -22,13 +22,15 @@ type ShiftResponse = {
   summary: ShiftSummary
 }
 
+type SubmitState = 'idle' | 'submitting' | 'done'
+
 export default function TutupShiftPage() {
   const router = useRouter()
   const [shiftId, setShiftId] = useState<string | null>(null)
   const [data, setData] = useState<ShiftResponse | null>(null)
   const [closing, setClosing] = useState(0)
   const [notes, setNotes] = useState('')
-  const [loading, setLoading] = useState(false)
+  const [submitState, setSubmitState] = useState<SubmitState>('idle')
   const [tipOpen, setTipOpen] = useState(false)
 
   useEffect(() => {
@@ -39,7 +41,7 @@ export default function TutupShiftPage() {
       return
     }
     setShiftId(sid)
-    fetch(`/api/shifts/${sid}`)
+    fetch(`/api/shifts/${sid}`, { cache: 'no-store' })
       .then(async (r) => {
         if (!r.ok) {
           toast.error('Shift tidak ditemukan')
@@ -52,30 +54,44 @@ export default function TutupShiftPage() {
   }, [router])
 
   const submit = async () => {
-    if (loading) return
+    // STRICT GUARD — only fire once per page load.
+    if (submitState !== 'idle') {
+      console.warn('[tutup-shift] submit blocked, state=', submitState)
+      return
+    }
     if (!shiftId) return
     if (closing < 0) return toast.error('Saldo akhir tidak valid')
-    setLoading(true)
+
+    setSubmitState('submitting')
+
     let res: Response
     try {
       res = await fetch('/api/shifts/close', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
+        cache: 'no-store',
         body: JSON.stringify({ shiftId, closingBalance: closing, notes }),
       })
-    } catch {
-      setLoading(false)
+    } catch (err) {
+      console.error('[tutup-shift] network error', err)
+      setSubmitState('idle')
       return toast.error('Gagal terhubung ke server')
     }
+
     if (!res.ok) {
-      setLoading(false)
       const j = await res.json().catch(() => ({}))
+      setSubmitState('idle')
       return toast.error((j as { error?: string }).error ?? 'Gagal tutup shift')
     }
+
     const j = (await res.json().catch(() => ({}))) as {
       alreadyClosed?: boolean
       shiftId?: string
     }
+
+    // FROZEN — prevent any further clicks while we redirect.
+    setSubmitState('done')
+
     if (typeof window !== 'undefined') {
       localStorage.removeItem('pos:shift_id')
       localStorage.removeItem('pos:cashier_id')
@@ -196,12 +212,16 @@ export default function TutupShiftPage() {
 
         <Button
           onClick={submit}
-          disabled={loading}
+          disabled={submitState !== 'idle'}
           className="w-full h-11 font-semibold gap-2"
         >
-          {loading ? (
+          {submitState === 'submitting' ? (
             <>
               <Loader2 className="size-4 animate-spin" /> Memproses…
+            </>
+          ) : submitState === 'done' ? (
+            <>
+              <Lock className="size-4" /> Selesai
             </>
           ) : (
             <>

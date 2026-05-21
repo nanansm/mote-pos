@@ -17,9 +17,13 @@ import {
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
-const RATE_LIMIT_MAX = 10
-const RATE_LIMIT_WINDOW_SEC = 60
-const BLOCK_DURATION_SEC = 60 * 60
+const RATE_LIMIT_MAX = Number(process.env.CASHIER_LOGIN_RATE_LIMIT_MAX ?? 10)
+const RATE_LIMIT_WINDOW_SEC = Number(
+  process.env.CASHIER_LOGIN_RATE_LIMIT_WINDOW_SEC ?? 60,
+)
+const BLOCK_DURATION_SEC = Number(
+  process.env.CASHIER_LOGIN_BLOCK_DURATION_SEC ?? 60 * 60,
+)
 
 const Body = z.object({
   login_code: z.string().min(1),

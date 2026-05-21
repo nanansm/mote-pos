@@ -9,7 +9,6 @@ import {
   Minus,
   Trash2,
   Search,
-  RotateCcw,
   ArrowLeft,
   ShoppingBag,
   CreditCard,
@@ -21,6 +20,8 @@ import {
   Wifi,
   ChevronRight,
   Tag,
+  ScanLine,
+  ShoppingCart,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -238,6 +239,9 @@ export function KasirClient({
     change: number
   } | null>(null)
 
+  // Mobile/tablet cart drawer (slide-up). Desktop sidebar is always visible.
+  const [cartDrawerOpen, setCartDrawerOpen] = useState(false)
+
   useEffect(() => {
     if (typeof window === 'undefined') return
     const sid = localStorage.getItem('pos:shift_id')
@@ -423,14 +427,6 @@ export function KasirClient({
     updateCartItem(uid, { quantity: c.quantity - 1 })
   }
   const removeItem = (uid: string) => setCart(cart.filter((c) => c.uid !== uid))
-
-  const clearCart = () => {
-    if (cart.length === 0) return
-    if (!confirm('Reset keranjang?')) return
-    setCart([])
-    setDiscount(0)
-    setDiscountType('amount')
-  }
 
   // Barcode scanner detection
   useEffect(() => {
@@ -734,12 +730,18 @@ export function KasirClient({
     )
   }
 
+  const totalItemCount = cart.reduce((s, it) => s + it.quantity, 0)
+
   return (
     <div className="h-full">
-      <div className="flex flex-col md:flex-row h-[calc(100dvh-56px)] lg:h-screen bg-background">
-        <div className="flex-1 flex flex-col min-w-0 min-h-0 md:border-r border-border">
-          <div className="border-b border-border bg-card p-3 flex gap-2 items-center">
-            <Link href="/dashboard" className="rounded-lg p-2 hover:bg-muted" aria-label="Kembali">
+      <div className="flex flex-col lg:flex-row h-[calc(100dvh-56px)] lg:h-screen bg-background">
+        <div className="flex-1 flex flex-col min-w-0 min-h-0 lg:border-r border-border pb-[68px] lg:pb-0">
+          <div className="border-b border-border bg-card px-3 py-2.5 flex gap-2 items-center">
+            <Link
+              href="/dashboard"
+              className="hidden lg:inline-flex rounded-lg p-2 hover:bg-muted"
+              aria-label="Kembali"
+            >
               <ArrowLeft className="size-4" />
             </Link>
             <div className="relative flex-1">
@@ -748,10 +750,19 @@ export function KasirClient({
                 ref={searchRef}
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder="Cari produk / scan barcode (F1)"
-                className="pl-9"
+                placeholder="Cari atau scan barcode"
+                className="pl-9 h-11"
               />
             </div>
+            <button
+              type="button"
+              onClick={() => searchRef.current?.focus()}
+              aria-label="Scan barcode"
+              className="inline-flex items-center justify-center size-11 shrink-0 rounded-lg border border-border bg-card hover:bg-muted"
+              title="Scan barcode (F1)"
+            >
+              <ScanLine className="size-5" />
+            </button>
             <span
               className="hidden md:inline-flex items-center gap-1.5 rounded-full bg-success/10 text-success px-2.5 py-1 text-xs font-semibold"
               title="Scanner ready"
@@ -760,7 +771,7 @@ export function KasirClient({
             </span>
             <button
               onClick={() => setHeldOpen(true)}
-              className="relative inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-sm font-semibold hover:bg-muted"
+              className="hidden md:inline-flex relative items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-sm font-semibold hover:bg-muted"
               title="Tagihan tersimpan (F4)"
             >
               <Bookmark className="size-4" />
@@ -798,7 +809,7 @@ export function KasirClient({
                   : 'Tidak ada produk yang cocok.'}
               </div>
             ) : (
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2.5">
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2.5">
                 {filteredGroups.map((g) => {
                   const activeVariants = g.variants.filter((v) => !v.stockTrack || v.stockCurrent > 0)
                   const allOut = activeVariants.length === 0
@@ -862,11 +873,40 @@ export function KasirClient({
           </div>
         </div>
 
-        <aside className="flex w-full md:w-[280px] lg:w-[360px] xl:w-[420px] md:shrink-0 flex-col bg-card border-t md:border-t-0 border-border max-h-[45vh] md:max-h-none">
+        {/* Mobile/tablet slide-up backdrop. Tap to close. */}
+        <button
+          aria-label="Tutup keranjang"
+          onClick={() => setCartDrawerOpen(false)}
+          className={`lg:hidden fixed inset-0 z-40 bg-black/40 transition-opacity duration-200 ${
+            cartDrawerOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
+          }`}
+        />
+
+        <aside
+          className={`flex flex-col bg-card border-border z-50
+            lg:static lg:flex lg:w-[360px] xl:w-[420px] lg:shrink-0 lg:translate-y-0 lg:border-l-0 lg:rounded-none lg:max-h-none
+            fixed inset-x-0 bottom-0 top-[10%] rounded-t-2xl shadow-2xl
+            transition-transform duration-200 ease-out
+            ${cartDrawerOpen ? 'translate-y-0' : 'translate-y-full lg:translate-y-0'}`}
+        >
+          {/* Drag-handle hint — mobile/tablet only */}
+          <div className="lg:hidden pt-2 pb-1 flex justify-center">
+            <span className="h-1 w-9 rounded-full bg-border" />
+          </div>
           <div className="border-b border-border px-4 py-3 flex items-center justify-between gap-2">
             <div className="flex items-center gap-2 min-w-0">
+              <button
+                type="button"
+                onClick={() => setCartDrawerOpen(false)}
+                aria-label="Tutup"
+                className="lg:hidden inline-flex items-center justify-center size-9 -ml-1 rounded-md hover:bg-muted"
+              >
+                <X className="size-5" />
+              </button>
               <ShoppingBag className="size-4 text-primary shrink-0" />
-              <div className="font-bold text-sm">Keranjang</div>
+              <div className="font-bold text-sm">
+                Keranjang{totalItemCount > 0 ? ` (${totalItemCount})` : ''}
+              </div>
             </div>
             <button
               onClick={() => setHeldOpen(true)}
@@ -971,10 +1011,10 @@ export function KasirClient({
                         <div className="flex items-center gap-1 rounded-lg border border-border">
                           <button
                             onClick={() => decItem(it.uid)}
-                            className="p-1.5 hover:bg-muted rounded-l-lg"
+                            className="inline-flex items-center justify-center size-9 hover:bg-muted rounded-l-lg"
                             aria-label="Kurangi"
                           >
-                            <Minus className="size-3.5" />
+                            <Minus className="size-4" />
                           </button>
                           <CartQtyInput
                             value={it.quantity}
@@ -982,10 +1022,10 @@ export function KasirClient({
                           />
                           <button
                             onClick={() => incItem(it.uid)}
-                            className="p-1.5 hover:bg-muted rounded-r-lg"
+                            className="inline-flex items-center justify-center size-9 hover:bg-muted rounded-r-lg"
                             aria-label="Tambah"
                           >
-                            <Plus className="size-3.5" />
+                            <Plus className="size-4" />
                           </button>
                         </div>
                         <div className="ml-auto text-right">
@@ -1066,12 +1106,48 @@ export function KasirClient({
               <Button variant="outline" onClick={openHoldDialog} className="gap-2 font-semibold" title="F3">
                 <Bookmark className="size-4" /> Simpan
               </Button>
-              <Button variant="outline" onClick={clearCart} className="gap-2 font-semibold">
-                <RotateCcw className="size-4" /> Reset
+              <Button variant="outline" onClick={() => setHeldOpen(true)} className="gap-2 font-semibold">
+                <Bookmark className="size-4" /> Tagihan
+                {heldCarts.length > 0 && (
+                  <span className="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-primary text-primary-foreground text-[10px] font-bold">
+                    {heldCarts.length}
+                  </span>
+                )}
               </Button>
             </div>
           </div>
         </aside>
+
+        {/* Mobile/tablet mini cart dock — sticky bottom, dark.
+            Visible only when cart has items AND drawer is closed. */}
+        {cart.length > 0 && (
+          <button
+            type="button"
+            onClick={() => setCartDrawerOpen(true)}
+            className={`lg:hidden fixed inset-x-3 bottom-3 z-30 flex items-center gap-3 rounded-2xl bg-[#292524] text-white px-3.5 py-3 shadow-xl transition-opacity duration-200 ${
+              cartDrawerOpen ? 'opacity-0 pointer-events-none' : 'opacity-100'
+            }`}
+            aria-label="Buka keranjang"
+          >
+            <span className="relative inline-flex items-center justify-center size-9 rounded-xl bg-white/10">
+              <ShoppingCart className="size-4" />
+              <span className="absolute -top-1.5 -right-1.5 inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-primary text-[#292524] text-[10px] font-bold">
+                {totalItemCount}
+              </span>
+            </span>
+            <span className="flex-1 text-left min-w-0">
+              <span className="block text-[11px] text-white/70 leading-tight">
+                {totalItemCount} item · Total
+              </span>
+              <span className="block text-base font-semibold tabular-nums leading-tight truncate">
+                {formatRupiah(total)}
+              </span>
+            </span>
+            <span className="inline-flex items-center gap-1 rounded-xl bg-primary text-[#292524] px-3 py-2 text-sm font-bold">
+              Bayar <ChevronRight className="size-4" />
+            </span>
+          </button>
+        )}
       </div>
 
       {/* Modifier picker */}
