@@ -1,8 +1,9 @@
 import Link from 'next/link'
 import Image from 'next/image'
-import { Mail, Phone, MapPin } from 'lucide-react'
+import { Mail, Phone, MapPin, Download } from 'lucide-react'
 
 export function PublicFooter() {
+  const apkUrl = process.env.NEXT_PUBLIC_APK_DOWNLOAD_URL
   return (
     <footer style={{ background: '#1C1917' }} className="text-white">
       <div className="max-w-7xl mx-auto px-6 py-14">
@@ -89,6 +90,16 @@ export function PublicFooter() {
             © {new Date().getFullYear()} Mote POS by Mote Kreatif. All rights reserved.
           </p>
           <div className="flex items-center gap-6 text-sm text-white/40">
+            {apkUrl && (
+              <a
+                href={apkUrl}
+                download
+                className="inline-flex items-center gap-1.5 hover:text-white transition-colors"
+              >
+                <Download className="w-3.5 h-3.5" />
+                Unduh APK
+              </a>
+            )}
             <a href="https://klir.motekreatif.com/terms" target="_blank" rel="noreferrer" className="hover:text-white transition-colors">
               Syarat & Ketentuan
             </a>

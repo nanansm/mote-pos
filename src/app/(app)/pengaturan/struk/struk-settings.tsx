@@ -15,6 +15,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { BackLink } from '@/components/back-link'
+import { PrinterSettingsSection } from '@/components/printer-settings-section'
 
 type Settings = {
   autoPrintReceipt: boolean
@@ -121,6 +122,8 @@ export function StrukSettings() {
           disabled={saving}
         />
       </div>
+
+      <PrinterSettingsSection />
 
       <div className="rounded-2xl border border-border bg-card p-6 space-y-5">
         <h2 className="font-bold">Format Struk</h2>

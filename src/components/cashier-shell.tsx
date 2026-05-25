@@ -22,6 +22,7 @@ import {
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { MobileHeader } from '@/components/layout/mobile-header'
+import { PrinterSetupNavItem } from '@/components/printer-setup-nav-item'
 
 type SubItem = { href: string; label: string }
 type NavItem = {
@@ -358,6 +359,7 @@ function SidebarContent({
             </Link>
           )
         })}
+        <PrinterSetupNavItem onItemClick={onItemClick} />
       </nav>
 
       <div className="border-t border-sidebar-border p-3">

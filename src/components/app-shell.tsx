@@ -27,6 +27,7 @@ import { useKeepAlive } from '@/hooks/use-keep-alive'
 import { Button } from '@/components/ui/button'
 import { OnlineIndicator } from '@/components/online-indicator'
 import { MobileHeader } from '@/components/layout/mobile-header'
+import { PrinterSetupNavItem } from '@/components/printer-setup-nav-item'
 
 type NavItem = {
   href: string
@@ -283,6 +284,7 @@ function SidebarContent({
             </Link>
           )
         })}
+        <PrinterSetupNavItem onItemClick={onItemClick} />
       </nav>
 
       <div className="border-t border-sidebar-border p-3">

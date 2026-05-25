@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { toast } from 'sonner'
+import { printTransaction } from '@/lib/print/receipt'
 import {
   Plus,
   Minus,
@@ -490,7 +491,10 @@ export function KasirClient({
 
   const printReceipt = useCallback((trxId: string) => {
     if (typeof window === 'undefined') return
-    window.open(`/print/receipt/${trxId}`, '_blank', 'width=480,height=720')
+    // In the APK: print over Bluetooth. In a browser: open the print page (unchanged).
+    void printTransaction(trxId, () => {
+      window.open(`/print/receipt/${trxId}`, '_blank', 'width=480,height=720')
+    }).catch((e) => toast.error(e instanceof Error ? e.message : 'Gagal cetak'))
   }, [])
 
   // Keyboard shortcuts

@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { toast } from 'sonner'
+import { printTransaction } from '@/lib/print/receipt'
 import {
   Search,
   Loader2,
@@ -152,17 +153,24 @@ export function TransaksiClient() {
   }
 
   const reprint = async (r: Row) => {
-    const res = await fetch('/api/print/receipt', {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ transactionId: r.id }),
-    })
-    if (!res.ok) {
-      const j = await res.json().catch(() => ({}))
-      toast.error(j.error ?? 'Gagal cetak ulang')
-      return
+    // In the APK: print over Bluetooth. In a browser: existing network printer (unchanged).
+    const networkPrint = async () => {
+      const res = await fetch('/api/print/receipt', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ transactionId: r.id }),
+      })
+      if (!res.ok) {
+        const j = await res.json().catch(() => ({}))
+        throw new Error(j.error ?? 'Gagal cetak ulang')
+      }
     }
-    toast.success('Struk dicetak')
+    try {
+      await printTransaction(r.id, networkPrint)
+      toast.success('Struk dicetak')
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Gagal cetak ulang')
+    }
   }
 
   return (
