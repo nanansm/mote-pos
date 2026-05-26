@@ -3,11 +3,25 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
-import { Loader2, ShieldCheck, User as UserIcon, PlayCircle } from 'lucide-react'
+import { Loader2, ShieldCheck, User as UserIcon, PlayCircle, AlertTriangle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { CurrencyInput } from '@/components/ui/currency-input'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog'
+
+type ShiftConflict = {
+  shiftId: string
+  openedAt: string | null
+  hoursOpen: number | null
+  isStale: boolean
+}
 
 type Cashier = {
   id: string
@@ -24,6 +38,8 @@ export default function BukaShiftPage() {
   const [pin, setPin] = useState('')
   const [opening, setOpening] = useState(0)
   const [loading, setLoading] = useState(false)
+  const [conflict, setConflict] = useState<ShiftConflict | null>(null)
+  const [resolving, setResolving] = useState(false)
 
   useEffect(() => {
     fetch('/api/cashiers')
@@ -34,6 +50,21 @@ export default function BukaShiftPage() {
         if (active.length) setCashierId(active[0].id)
       })
   }, [])
+
+  const persistAndGo = (
+    shiftId: string,
+    c: { id: string; name: string; role?: string },
+    openedAtIso: string,
+  ) => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('pos:shift_id', shiftId)
+      localStorage.setItem('pos:cashier_id', c.id)
+      localStorage.setItem('pos:cashier_name', c.name)
+      localStorage.setItem('pos:cashier_role', c.role ?? 'cashier')
+      localStorage.setItem('pos:shift_opened_at', openedAtIso)
+    }
+    router.push('/kasir')
+  }
 
   const submit = async () => {
     if (!cashierId) return toast.error('Pilih kasir')
@@ -47,18 +78,53 @@ export default function BukaShiftPage() {
     setLoading(false)
     if (!res.ok) {
       const j = await res.json().catch(() => ({}))
+      // Cashier already has an open shift (possibly from another device).
+      if (res.status === 409 && j.shiftId) {
+        setConflict({
+          shiftId: j.shiftId,
+          openedAt: j.staleShift?.openedAt ?? null,
+          hoursOpen: j.staleShift?.hoursOpen ?? null,
+          isStale: Boolean(j.staleShift?.isStale),
+        })
+        return
+      }
       return toast.error(j.error ?? 'Gagal buka shift')
     }
     const j = await res.json()
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('pos:shift_id', j.id)
-      localStorage.setItem('pos:cashier_id', j.cashier.id)
-      localStorage.setItem('pos:cashier_name', j.cashier.name)
-      localStorage.setItem('pos:cashier_role', j.cashier.role ?? 'cashier')
-      localStorage.setItem('pos:shift_opened_at', new Date().toISOString())
-    }
+    persistAndGo(j.id, j.cashier, new Date().toISOString())
     toast.success('Shift dibuka')
-    router.push('/kasir')
+  }
+
+  // Option C — resume the existing shift on this device.
+  const resumeShift = () => {
+    if (!conflict) return
+    const c = list.find((x) => x.id === cashierId)
+    if (!c) return toast.error('Kasir tidak ditemukan')
+    persistAndGo(conflict.shiftId, c, conflict.openedAt ?? new Date().toISOString())
+    toast.success('Melanjutkan shift sebelumnya')
+  }
+
+  // Option A — close the previous shift (at expected), then open a fresh one.
+  const closeOldAndReopen = async () => {
+    if (!conflict) return
+    setResolving(true)
+    const res = await fetch('/api/shifts/close', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        shiftId: conflict.shiftId,
+        closeAtExpected: true,
+        notes: 'Ditutup otomatis saat membuka shift baru dari perangkat lain.',
+      }),
+    })
+    setResolving(false)
+    if (!res.ok) {
+      const j = await res.json().catch(() => ({}))
+      return toast.error(j.error ?? 'Gagal menutup shift sebelumnya')
+    }
+    toast.success('Shift sebelumnya ditutup')
+    setConflict(null)
+    await submit()
   }
 
   return (
@@ -173,6 +239,57 @@ export default function BukaShiftPage() {
           </Button>
         </div>
       </div>
+
+      <Dialog
+        open={!!conflict}
+        onOpenChange={(o) => {
+          if (!o && !resolving) setConflict(null)
+        }}
+      >
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="size-5 text-warning" />
+              Shift Masih Terbuka
+            </DialogTitle>
+            <DialogDescription>
+              Kasir ini masih punya shift terbuka
+              {conflict?.hoursOpen != null ? ` (${conflict.hoursOpen} jam lalu)` : ''}, kemungkinan
+              dibuka dari perangkat lain. Pilih tindakan:
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Button
+              onClick={resumeShift}
+              disabled={resolving}
+              className="w-full justify-start gap-2"
+            >
+              <PlayCircle className="size-4" /> Lanjutkan shift ini
+            </Button>
+            <Button
+              onClick={closeOldAndReopen}
+              disabled={resolving}
+              variant="outline"
+              className="w-full justify-start gap-2"
+            >
+              {resolving ? (
+                <Loader2 className="size-4 animate-spin" />
+              ) : (
+                <ShieldCheck className="size-4" />
+              )}
+              Tutup shift lama &amp; buka baru
+            </Button>
+            <Button
+              onClick={() => setConflict(null)}
+              disabled={resolving}
+              variant="ghost"
+              className="w-full"
+            >
+              Batal
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

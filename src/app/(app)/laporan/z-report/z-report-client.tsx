@@ -131,11 +131,11 @@ export function ZReportClient() {
 
 function Card({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-2xl border border-border bg-card p-5">
+    <div className="rounded-2xl border border-border bg-card p-4 sm:p-5">
       <div className="text-[11px] uppercase tracking-wider font-semibold text-muted-foreground">
         {label}
       </div>
-      <div className="mt-2 text-2xl font-bold tabular-nums">{value}</div>
+      <div className="mt-2 text-lg sm:text-2xl font-bold tabular-nums leading-tight break-words">{value}</div>
     </div>
   )
 }

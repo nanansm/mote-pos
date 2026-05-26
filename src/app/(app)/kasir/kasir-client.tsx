@@ -1122,36 +1122,67 @@ export function KasirClient({
           </div>
         </aside>
 
-        {/* Mobile/tablet mini cart dock — sticky bottom, dark.
-            Visible only when cart has items AND drawer is closed. */}
-        {cart.length > 0 && (
-          <button
-            type="button"
-            onClick={() => setCartDrawerOpen(true)}
-            className={`lg:hidden fixed inset-x-3 bottom-3 z-30 flex items-center gap-3 rounded-2xl bg-[#292524] text-white px-3.5 py-3 shadow-xl transition-opacity duration-200 ${
-              cartDrawerOpen ? 'opacity-0 pointer-events-none' : 'opacity-100'
-            }`}
-            aria-label="Buka keranjang"
-          >
-            <span className="relative inline-flex items-center justify-center size-9 rounded-xl bg-white/10">
-              <ShoppingCart className="size-4" />
-              <span className="absolute -top-1.5 -right-1.5 inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-primary text-[#292524] text-[10px] font-bold">
-                {totalItemCount}
+        {/* Mobile/tablet mini cart dock — sticky bottom, dark. Always visible so
+            held carts stay reachable even when the cart is empty. */}
+        <div
+          className={`lg:hidden fixed inset-x-3 bottom-3 z-30 transition-opacity duration-200 ${
+            cartDrawerOpen ? 'opacity-0 pointer-events-none' : 'opacity-100'
+          }`}
+        >
+          {cart.length > 0 ? (
+            <button
+              type="button"
+              onClick={() => setCartDrawerOpen(true)}
+              className="flex w-full items-center gap-3 rounded-2xl bg-[#292524] text-white px-3.5 py-3 shadow-xl"
+              aria-label="Buka keranjang"
+            >
+              <span className="relative inline-flex items-center justify-center size-9 rounded-xl bg-white/10">
+                <ShoppingCart className="size-4" />
+                <span className="absolute -top-1.5 -right-1.5 inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-primary text-[#292524] text-[10px] font-bold">
+                  {totalItemCount}
+                </span>
               </span>
-            </span>
-            <span className="flex-1 text-left min-w-0">
-              <span className="block text-[11px] text-white/70 leading-tight">
-                {totalItemCount} item · Total
+              <span className="flex-1 text-left min-w-0">
+                <span className="block text-[11px] text-white/70 leading-tight">
+                  {totalItemCount} item · Total
+                </span>
+                <span className="block text-base font-semibold tabular-nums leading-tight truncate">
+                  {formatRupiah(total)}
+                </span>
               </span>
-              <span className="block text-base font-semibold tabular-nums leading-tight truncate">
-                {formatRupiah(total)}
+              <span className="inline-flex items-center gap-1 rounded-xl bg-primary text-[#292524] px-3 py-2 text-sm font-bold">
+                Bayar <ChevronRight className="size-4" />
               </span>
-            </span>
-            <span className="inline-flex items-center gap-1 rounded-xl bg-primary text-[#292524] px-3 py-2 text-sm font-bold">
-              Bayar <ChevronRight className="size-4" />
-            </span>
-          </button>
-        )}
+            </button>
+          ) : (
+            <div className="flex w-full items-center gap-3 rounded-2xl bg-[#292524] text-white px-3.5 py-3 shadow-xl">
+              <span className="inline-flex items-center justify-center size-9 rounded-xl bg-white/10">
+                <ShoppingCart className="size-4 text-white/70" />
+              </span>
+              <span className="flex-1 text-left min-w-0">
+                <span className="block text-[11px] text-white/70 leading-tight">
+                  Keranjang kosong
+                </span>
+                <span className="block text-sm font-medium leading-tight truncate">
+                  Pilih produk untuk mulai
+                </span>
+              </span>
+              <button
+                type="button"
+                onClick={() => setHeldOpen(true)}
+                className="inline-flex items-center gap-1.5 rounded-xl bg-white/10 px-3 py-2 text-sm font-semibold"
+                aria-label="Tagihan tersimpan"
+              >
+                <Bookmark className="size-4" /> Tersimpan
+                {heldCarts.length > 0 && (
+                  <span className="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-primary text-[#292524] text-[10px] font-bold">
+                    {heldCarts.length}
+                  </span>
+                )}
+              </button>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Modifier picker */}
@@ -1591,72 +1622,6 @@ export function KasirClient({
           </DialogHeader>
 
           <div className="space-y-5">
-            <div className="space-y-2 border-b border-border pb-4">
-              <div className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                Pelanggan (Opsional)
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="cust-name">Nama</Label>
-                <div className="relative">
-                  <Input
-                    id="cust-name"
-                    value={customerName}
-                    onChange={(e) => {
-                      setCustomerName(e.target.value)
-                      setCustomerId(null)
-                      searchCustomer(e.target.value)
-                    }}
-                    placeholder="Nama pelanggan"
-                  />
-                  {customerHits.length > 0 && (
-                    <ul className="absolute z-10 mt-1 w-full rounded-lg border border-border bg-popover shadow-md max-h-48 overflow-auto">
-                      {customerHits.map((h) => (
-                        <li key={h.id}>
-                          <button
-                            type="button"
-                            onClick={() => pickCustomer(h)}
-                            className="w-full text-left px-3 py-2 hover:bg-muted text-sm flex items-center justify-between gap-2"
-                          >
-                            <div>
-                              <div className="font-semibold">{h.name}</div>
-                              {h.phone && (
-                                <div className="text-xs text-muted-foreground">{h.phone}</div>
-                              )}
-                            </div>
-                            {h.totalDebt > 0 && (
-                              <span className="text-xs font-semibold text-destructive">
-                                Hutang {formatRupiah(h.totalDebt)}
-                              </span>
-                            )}
-                          </button>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </div>
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="cust-phone">HP</Label>
-                <Input
-                  id="cust-phone"
-                  value={customerPhone}
-                  onChange={(e) => setCustomerPhone(e.target.value)}
-                  placeholder="0812xxxxxxx"
-                  inputMode="tel"
-                />
-              </div>
-              {!customerId && (customerName.trim() || customerPhone.trim()) && (
-                <p className="text-xs text-muted-foreground">
-                  Pelanggan akan otomatis tersimpan kalau nama atau HP diisi.
-                </p>
-              )}
-              {customerId && (
-                <p className="text-xs text-success font-semibold flex items-center gap-1">
-                  ✓ Pelanggan dipilih dari database
-                </p>
-              )}
-            </div>
-
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <div className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
@@ -1813,6 +1778,72 @@ export function KasirClient({
                 rows={2}
                 placeholder="Opsional"
               />
+            </div>
+
+            <div className="space-y-2 border-t border-border pt-4">
+              <div className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                Pelanggan (Opsional)
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="cust-name">Nama</Label>
+                <div className="relative">
+                  <Input
+                    id="cust-name"
+                    value={customerName}
+                    onChange={(e) => {
+                      setCustomerName(e.target.value)
+                      setCustomerId(null)
+                      searchCustomer(e.target.value)
+                    }}
+                    placeholder="Nama pelanggan"
+                  />
+                  {customerHits.length > 0 && (
+                    <ul className="absolute z-10 mt-1 w-full rounded-lg border border-border bg-popover shadow-md max-h-48 overflow-auto">
+                      {customerHits.map((h) => (
+                        <li key={h.id}>
+                          <button
+                            type="button"
+                            onClick={() => pickCustomer(h)}
+                            className="w-full text-left px-3 py-2 hover:bg-muted text-sm flex items-center justify-between gap-2"
+                          >
+                            <div>
+                              <div className="font-semibold">{h.name}</div>
+                              {h.phone && (
+                                <div className="text-xs text-muted-foreground">{h.phone}</div>
+                              )}
+                            </div>
+                            {h.totalDebt > 0 && (
+                              <span className="text-xs font-semibold text-destructive">
+                                Hutang {formatRupiah(h.totalDebt)}
+                              </span>
+                            )}
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="cust-phone">HP</Label>
+                <Input
+                  id="cust-phone"
+                  value={customerPhone}
+                  onChange={(e) => setCustomerPhone(e.target.value)}
+                  placeholder="0812xxxxxxx"
+                  inputMode="tel"
+                />
+              </div>
+              {!customerId && (customerName.trim() || customerPhone.trim()) && (
+                <p className="text-xs text-muted-foreground">
+                  Pelanggan akan otomatis tersimpan kalau nama atau HP diisi.
+                </p>
+              )}
+              {customerId && (
+                <p className="text-xs text-success font-semibold flex items-center gap-1">
+                  ✓ Pelanggan dipilih dari database
+                </p>
+              )}
             </div>
 
             <div className="flex gap-2 pt-1">

@@ -24,6 +24,8 @@ type Settings = {
   receiptNote: string | null
   receiptShowPhone: boolean
   receiptShowAddress: boolean
+  receiptShowCashier: boolean
+  receiptShowTrxNo: boolean
   workspaceName: string
   workspacePhone: string | null
   workspaceAddress: string | null
@@ -160,6 +162,20 @@ export function StrukSettings() {
           checked={data.receiptShowAddress}
           onChange={(v) => update({ receiptShowAddress: v })}
           disabled={saving || !data.workspaceAddress}
+        />
+        <Toggle
+          label="Tampilkan nama kasir di struk"
+          desc="Baris 'Kasir' pada struk."
+          checked={data.receiptShowCashier}
+          onChange={(v) => update({ receiptShowCashier: v })}
+          disabled={saving}
+        />
+        <Toggle
+          label="Tampilkan nomor transaksi di struk"
+          desc="Baris 'No' pada struk."
+          checked={data.receiptShowTrxNo}
+          onChange={(v) => update({ receiptShowTrxNo: v })}
+          disabled={saving}
         />
       </div>
 

@@ -177,7 +177,10 @@ export function SettingsClient({ defaultTab, isCashier = false, user, isWorkspac
       </div>
 
       <Tabs value={tab} onValueChange={onTabChange}>
-        <TabsList variant="line" className="flex-wrap h-auto justify-start gap-1">
+        <TabsList
+          variant="line"
+          className="w-full flex-nowrap justify-start gap-1 overflow-x-auto h-auto -mx-1 px-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden [&>*]:shrink-0 [&>*]:flex-none [&_[data-slot=tabs-trigger]]:min-h-[44px] [&_[data-slot=tabs-trigger]]:px-3 [&_[data-slot=tabs-trigger]]:text-[13px]"
+        >
           {!isCashier && <TabsTrigger value="profile">Profil Toko</TabsTrigger>}
           <TabsTrigger value="outlet">Outlet</TabsTrigger>
           {!isCashier && <TabsTrigger value="account">Akun</TabsTrigger>}

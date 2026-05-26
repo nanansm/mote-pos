@@ -121,6 +121,8 @@ export const workspaces = mp.table('workspaces', {
   receiptNote: text('receipt_note'),
   receiptShowPhone: boolean('receipt_show_phone').notNull().default(true),
   receiptShowAddress: boolean('receipt_show_address').notNull().default(true),
+  receiptShowCashier: boolean('receipt_show_cashier').notNull().default(true),
+  receiptShowTrxNo: boolean('receipt_show_trx_no').notNull().default(true),
   sheetsSyncEnabled: boolean('sheets_sync_enabled').notNull().default(false),
   sheetsSyncUrl: text('sheets_sync_url'),
   sheetsSyncId: text('sheets_sync_id'),

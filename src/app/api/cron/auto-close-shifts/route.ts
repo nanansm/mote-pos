@@ -1,3 +1,23 @@
+/**
+ * Auto-close stale shifts (> 24h still 'open').
+ *
+ * Closes at expected balance (opening + cash from completed transactions),
+ * sets auto_closed=true, closed_reason='auto_closed_timeout'. Idempotent and
+ * race-safe (UPDATE guarded by status='open'). Auth: Bearer CRON_SECRET.
+ *
+ * ── SETUP cron-job.org (auto-deploy is OFF; this must be triggered externally) ──
+ *   1. Sign in at https://cron-job.org → "Create cronjob".
+ *   2. Title:   Mote POS — Auto Close Shifts
+ *      URL:     https://pos.motekreatif.com/api/cron/auto-close-shifts
+ *      Method:  POST            (GET also works)
+ *   3. Schedule: Every 1 hour (e.g. "Every hour at minute 0").
+ *   4. Advanced → Headers → add ONE header:
+ *        Key:   Authorization
+ *        Value: Bearer <CRON_SECRET>     ← same value as the CRON_SECRET env var
+ *   5. Save & "Run now" once to test → expect {"ok":true,"processed":N,...}.
+ *
+ * Manual CLI fallback (close stuck shifts locally): `npm run repair:shifts`.
+ */
 import { NextResponse } from 'next/server'
 import { and, eq, lt } from 'drizzle-orm'
 import { db } from '@/lib/db'

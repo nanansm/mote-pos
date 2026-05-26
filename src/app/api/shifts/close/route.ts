@@ -14,11 +14,17 @@ function jsonNoStore(body: unknown, init?: ResponseInit) {
   })
 }
 
-const Body = z.object({
-  shiftId: z.string().min(1),
-  closingBalance: z.number().min(0),
-  notes: z.string().max(2000).optional(),
-})
+const Body = z
+  .object({
+    shiftId: z.string().min(1),
+    // Optional when closeAtExpected is set (e.g. closing a stale shift from another device).
+    closingBalance: z.number().min(0).optional(),
+    closeAtExpected: z.boolean().optional(),
+    notes: z.string().max(2000).optional(),
+  })
+  .refine((d) => d.closeAtExpected === true || typeof d.closingBalance === 'number', {
+    message: 'closingBalance wajib diisi',
+  })
 
 type ShiftRow = {
   id: string
@@ -91,19 +97,23 @@ export async function POST(req: Request) {
       const cashIn = Number(cashAgg.rows[0]?.cash_in ?? 0)
       const opening = Number(shift.opening_balance ?? 0)
       const expected = opening + cashIn
-      const difference = closingBalance - expected
+      // closeAtExpected: assume drawer = expected (used when closing a stale shift
+      // opened on another device, where the live cash count isn't available here).
+      const finalClosing = parsed.data.closeAtExpected ? expected : (closingBalance as number)
+      const difference = finalClosing - expected
+      const closeReason = parsed.data.closeAtExpected ? 'closed_from_other_device' : 'manual'
 
-      console.log(`[shift close] BEFORE UPDATE trace=${traceId} cashIn=${cashIn} expected=${expected} closing=${closingBalance}`)
+      console.log(`[shift close] BEFORE UPDATE trace=${traceId} cashIn=${cashIn} expected=${expected} closing=${finalClosing} reason=${closeReason}`)
 
       const updateRes = await tx.execute<ShiftRow>(sql`
         UPDATE mote_pos.shift_sessions
         SET status = 'closed',
             closed_at = NOW(),
-            closing_balance = ${String(closingBalance)},
+            closing_balance = ${String(finalClosing)},
             expected_balance = ${String(expected)},
             difference = ${String(difference)},
             notes = ${notes ?? null},
-            closed_reason = 'manual',
+            closed_reason = ${closeReason},
             updated_at = NOW()
         WHERE id = ${shiftId} AND status = 'open'
         RETURNING id, workspace_id, cashier_id, outlet_id, opening_balance,
@@ -125,6 +135,7 @@ export async function POST(req: Request) {
         cashIn,
         expected,
         difference,
+        closingBalance: finalClosing,
       }
     })
     console.log(`[shift close] COMMIT trace=${traceId} kind=${result.kind}`)
@@ -190,7 +201,7 @@ export async function POST(req: Request) {
       entityType: 'shift_session',
       entityId: result.shift.id,
       metadata: {
-        closingBalance,
+        closingBalance: result.closingBalance,
         expectedBalance: result.expected,
         difference: result.difference,
         cashIn: result.cashIn,
@@ -204,7 +215,7 @@ export async function POST(req: Request) {
       ok: true,
       alreadyClosed: false,
       shiftId: result.shift.id,
-      closingBalance,
+      closingBalance: result.closingBalance,
       expectedBalance: result.expected,
       difference: result.difference,
       cashIn: result.cashIn,

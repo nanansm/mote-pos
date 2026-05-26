@@ -93,11 +93,11 @@ export function SalesReport() {
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         {cards.map((c) => (
-          <div key={c.label} className="rounded-2xl border border-border bg-card p-5">
+          <div key={c.label} className="rounded-2xl border border-border bg-card p-4 sm:p-5">
             <div className="text-[11px] uppercase tracking-wider font-semibold text-muted-foreground">
               {c.label}
             </div>
-            <div className="mt-2 text-2xl font-bold tracking-tight tabular-nums">
+            <div className="mt-2 text-lg sm:text-2xl font-bold tracking-tight tabular-nums leading-tight break-words">
               {c.value}
             </div>
           </div>

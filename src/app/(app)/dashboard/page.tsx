@@ -208,17 +208,17 @@ export default async function DashboardPage() {
         {stats.map((s) => (
           <div
             key={s.label}
-            className="rounded-2xl border border-border bg-card p-5 shadow-sm transition-all hover:shadow-md hover:border-brand-500/30 hover:scale-[1.01]"
+            className="rounded-2xl border border-border bg-card p-4 sm:p-5 shadow-sm transition-all hover:shadow-md hover:border-brand-500/30 hover:scale-[1.01]"
           >
-            <div className="flex items-start justify-between gap-3">
-              <div className="text-[11px] uppercase tracking-wider font-semibold text-muted-foreground">
+            <div className="flex items-start justify-between gap-2">
+              <div className="min-w-0 text-[11px] uppercase tracking-wider font-semibold text-muted-foreground">
                 {s.label}
               </div>
               <div className="size-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
                 <s.Icon className="size-4" />
               </div>
             </div>
-            <div className="mt-3 text-2xl sm:text-3xl font-extrabold tracking-tight">
+            <div className="mt-3 text-xl sm:text-2xl lg:text-3xl font-extrabold tracking-tight leading-tight tabular-nums break-words">
               {s.value}
             </div>
             <div

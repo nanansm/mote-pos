@@ -15,6 +15,8 @@ const Body = z.object({
   receiptNote: z.string().max(500).nullable().optional(),
   receiptShowPhone: z.boolean().optional(),
   receiptShowAddress: z.boolean().optional(),
+  receiptShowCashier: z.boolean().optional(),
+  receiptShowTrxNo: z.boolean().optional(),
 })
 
 export async function GET() {
@@ -28,6 +30,8 @@ export async function GET() {
       receiptNote: workspaces.receiptNote,
       receiptShowPhone: workspaces.receiptShowPhone,
       receiptShowAddress: workspaces.receiptShowAddress,
+      receiptShowCashier: workspaces.receiptShowCashier,
+      receiptShowTrxNo: workspaces.receiptShowTrxNo,
       workspaceName: workspaces.name,
       workspacePhone: workspaces.phone,
       workspaceAddress: workspaces.address,
@@ -57,6 +61,10 @@ export async function PUT(req: Request) {
     updates.receiptShowPhone = parsed.data.receiptShowPhone
   if (parsed.data.receiptShowAddress !== undefined)
     updates.receiptShowAddress = parsed.data.receiptShowAddress
+  if (parsed.data.receiptShowCashier !== undefined)
+    updates.receiptShowCashier = parsed.data.receiptShowCashier
+  if (parsed.data.receiptShowTrxNo !== undefined)
+    updates.receiptShowTrxNo = parsed.data.receiptShowTrxNo
 
   await db.update(workspaces).set(updates).where(eq(workspaces.id, ctx.workspaceId))
   return NextResponse.json({ ok: true })

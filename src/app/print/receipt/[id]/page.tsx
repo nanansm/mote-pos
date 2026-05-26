@@ -105,6 +105,8 @@ export default async function PrintReceiptPage({
   const paperSize = ws?.receiptPaperSize ?? '80mm'
   const showAddress = ws?.receiptShowAddress ?? true
   const showPhone = ws?.receiptShowPhone ?? true
+  const showCashier = ws?.receiptShowCashier ?? true
+  const showTrxNo = ws?.receiptShowTrxNo ?? true
   const note = ws?.receiptNote?.trim() ?? ''
 
   return (
@@ -117,18 +119,22 @@ export default async function PrintReceiptPage({
         {showPhone && ws?.phone && <div className="center small">Telp: {ws.phone}</div>}
         <hr className="divider" />
 
-        <div className="row small">
-          <span>No</span>
-          <span className="bold">{trx.trxNumber}</span>
-        </div>
+        {showTrxNo && (
+          <div className="row small">
+            <span>No</span>
+            <span className="bold">{trx.trxNumber}</span>
+          </div>
+        )}
         <div className="row small">
           <span>Tgl</span>
           <span>{fmtDate(new Date(trx.trxDate))}</span>
         </div>
-        <div className="row small">
-          <span>Kasir</span>
-          <span>{cashierName}</span>
-        </div>
+        {showCashier && (
+          <div className="row small">
+            <span>Kasir</span>
+            <span>{cashierName}</span>
+          </div>
+        )}
         {trx.customerName && (
           <div className="row small">
             <span>Pelanggan</span>

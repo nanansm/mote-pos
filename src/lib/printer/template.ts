@@ -50,6 +50,8 @@ export type ReceiptInput = {
   }
   items: ReceiptItem[]
   footer?: string
+  showCashier?: boolean
+  showTrxNo?: boolean
 }
 
 export function buildReceiptCommands(data: ReceiptInput): Buffer {
@@ -64,9 +66,9 @@ export function buildReceiptCommands(data: ReceiptInput): Buffer {
   b.feed(1)
 
   b.alignLeft()
-  b.line(`No: ${data.trx.trxNumber}`)
+  if (data.showTrxNo !== false) b.line(`No: ${data.trx.trxNumber}`)
   b.line(`Tgl: ${formatDateTime(data.trx.trxDate)}`)
-  b.line(`Kasir: ${data.trx.cashierName}`)
+  if (data.showCashier !== false) b.line(`Kasir: ${data.trx.cashierName}`)
   if (data.trx.customerName) b.line(`Cust: ${data.trx.customerName}`)
   b.line('-'.repeat(WIDTH))
 

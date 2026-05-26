@@ -60,6 +60,8 @@ export async function buildReceiptData(
   )[0]
 
   const showAddress = ws?.receiptShowAddress ?? true
+  const showCashier = ws?.receiptShowCashier ?? true
+  const showTrxNo = ws?.receiptShowTrxNo ?? true
   const note = ws?.receiptNote?.trim() || undefined
 
   const receiptItems: ReceiptItem[] = items.map((it) => {
@@ -93,8 +95,9 @@ export async function buildReceiptData(
   return {
     storeName: ws?.name ?? 'TOKO',
     storeAddress: showAddress ? outlet?.address ?? undefined : undefined,
-    cashierName: trxRow.cashierName,
-    transactionNo: trx.trxNumber,
+    // Empty string when hidden by setting; native ESC/POS builder skips empty lines.
+    cashierName: showCashier ? trxRow.cashierName : '',
+    transactionNo: showTrxNo ? trx.trxNumber : '',
     datetime: fmtDate(new Date(trx.trxDate)),
     items: receiptItems,
     subtotal: Number(trx.subtotal),

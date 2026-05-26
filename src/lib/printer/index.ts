@@ -100,6 +100,8 @@ export async function printReceipt(workspaceId: string, transactionId: string) {
       modifiers: (Array.isArray(i.modifiers) ? i.modifiers : []) as ReceiptModifier[],
       subtotal: Number(i.subtotal),
     })),
+    showCashier: ws.receiptShowCashier,
+    showTrxNo: ws.receiptShowTrxNo,
   })
 
   await sendToPrinter(outlet.printerIp, outlet.printerPort, buf)
