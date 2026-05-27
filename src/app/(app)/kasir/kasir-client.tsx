@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { toast } from 'sonner'
 import { printTransaction } from '@/lib/print/receipt'
+import { NumberPadPopup } from '@/components/number-pad-popup'
 import {
   Plus,
   Minus,
@@ -242,6 +243,9 @@ export function KasirClient({
 
   // Mobile/tablet cart drawer (slide-up). Desktop sidebar is always visible.
   const [cartDrawerOpen, setCartDrawerOpen] = useState(false)
+  const [qtyPad, setQtyPad] = useState<{ uid: string; name: string; value: number } | null>(null)
+  const [discountPadOpen, setDiscountPadOpen] = useState(false)
+  const [detailQtyPadOpen, setDetailQtyPadOpen] = useState(false)
 
   useEffect(() => {
     if (typeof window === 'undefined') return
@@ -1020,10 +1024,17 @@ export function KasirClient({
                           >
                             <Minus className="size-4" />
                           </button>
-                          <CartQtyInput
-                            value={it.quantity}
-                            onChange={(n) => updateCartItem(it.uid, { quantity: n })}
-                          />
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              setQtyPad({ uid: it.uid, name: it.name, value: it.quantity })
+                            }}
+                            className="min-w-[44px] h-9 px-1 text-center font-semibold text-sm tabular-nums rounded hover:bg-muted/40"
+                            aria-label="Ubah jumlah"
+                          >
+                            {it.quantity}
+                          </button>
                           <button
                             onClick={() => incItem(it.uid)}
                             className="inline-flex items-center justify-center size-9 hover:bg-muted rounded-r-lg"
@@ -1074,14 +1085,14 @@ export function KasirClient({
                 >
                   %
                 </button>
-                <Input
-                  type="number"
-                  inputMode="numeric"
-                  value={discount}
-                  onChange={(e) => setDiscount(Math.max(0, Number(e.target.value) || 0))}
-                  className="max-w-[120px] text-right h-8"
-                  min={0}
-                />
+                <button
+                  type="button"
+                  onClick={() => setDiscountPadOpen(true)}
+                  className="min-w-[88px] h-8 px-3 rounded-md border border-border text-right text-sm font-semibold tabular-nums hover:bg-muted/40"
+                  aria-label="Ubah diskon"
+                >
+                  {discount}
+                </button>
               </div>
             </div>
             {totalDiscount > 0 && (
@@ -1184,6 +1195,40 @@ export function KasirClient({
           )}
         </div>
       </div>
+
+      {/* Number pad popups (custom — no Android keyboard) */}
+      {qtyPad && (
+        <NumberPadPopup
+          open={!!qtyPad}
+          title={qtyPad.name}
+          label="Jumlah"
+          min={1}
+          initialValue={qtyPad.value}
+          onSubmit={(n) => updateCartItem(qtyPad.uid, { quantity: n })}
+          onClose={() => setQtyPad(null)}
+        />
+      )}
+      <NumberPadPopup
+        open={discountPadOpen}
+        title="Diskon"
+        label={discountType === 'percent' ? 'Diskon (%)' : 'Diskon (Rp)'}
+        min={0}
+        max={discountType === 'percent' ? 100 : undefined}
+        initialValue={discount}
+        onSubmit={(n) => setDiscount(n)}
+        onClose={() => setDiscountPadOpen(false)}
+      />
+      {detailItem && (
+        <NumberPadPopup
+          open={detailQtyPadOpen}
+          title={detailItem.name}
+          label="Jumlah"
+          min={1}
+          initialValue={detailItem.quantity}
+          onSubmit={(n) => setDetailItem({ ...detailItem, quantity: n })}
+          onClose={() => setDetailQtyPadOpen(false)}
+        />
+      )}
 
       {/* Modifier picker */}
       <Dialog open={!!pickProduct} onOpenChange={(o) => !o && setPickProduct(null)}>
@@ -1371,7 +1416,14 @@ export function KasirClient({
                     >
                       <Minus className="size-4" />
                     </button>
-                    <div className="w-12 text-center font-semibold">{detailItem.quantity}</div>
+                    <button
+                      type="button"
+                      onClick={() => setDetailQtyPadOpen(true)}
+                      className="w-12 h-9 text-center font-semibold tabular-nums rounded hover:bg-muted/40"
+                      aria-label="Ubah jumlah"
+                    >
+                      {detailItem.quantity}
+                    </button>
                     <button
                       onClick={() => setDetailItem({ ...detailItem, quantity: detailItem.quantity + 1 })}
                       className="p-2 hover:bg-muted rounded-r-lg"
@@ -1900,37 +1952,6 @@ export function KasirClient({
         </DialogContent>
       </Dialog>
     </div>
-  )
-}
-
-function CartQtyInput({ value, onChange }: { value: number; onChange: (v: number) => void }) {
-  const [text, setText] = useState(String(value))
-  useEffect(() => {
-    setText(String(value))
-  }, [value])
-  return (
-    <input
-      type="text"
-      inputMode="numeric"
-      pattern="[0-9]*"
-      value={text}
-      onChange={(e) => {
-        const raw = e.target.value.replace(/[^0-9]/g, '')
-        setText(raw)
-        const n = parseInt(raw, 10)
-        if (!isNaN(n) && n > 0) onChange(n)
-      }}
-      onBlur={() => {
-        const n = parseInt(text, 10)
-        if (isNaN(n) || n < 1) {
-          setText(String(value))
-        }
-      }}
-      onFocus={(e) => e.target.select()}
-      onClick={(e) => e.stopPropagation()}
-      aria-label="Qty"
-      className="w-10 text-center font-semibold text-sm bg-transparent outline-none focus:bg-muted/40 rounded"
-    />
   )
 }
 
